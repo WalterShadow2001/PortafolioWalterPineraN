@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { useData } from '@/lib/contexts/data-context';
 import { Button } from '@/components/ui/button';
@@ -12,8 +12,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Tabs,
@@ -24,7 +24,7 @@ import {
 import { 
   Lock, LogOut, Plus, Trash2, Edit2, Palette, 
   Folder, Award, Briefcase, Code, Save, User,
-  ChevronDown, ChevronUp, X
+  ChevronDown, ChevronUp, X, ImagePlus
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -48,7 +48,7 @@ export function LoginButton() {
       <Button
         onClick={logout}
         variant="outline"
-        className="fixed top-4 right-4 z-50 gap-2"
+        className="fixed top-4 right-4 z-50 gap-2 bg-white shadow-lg"
       >
         <LogOut size={16} />
         Salir del Editor
@@ -67,7 +67,7 @@ export function LoginButton() {
           <Lock size={16} />
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="bg-white">
         <DialogHeader>
           <DialogTitle>Modo Editor</DialogTitle>
         </DialogHeader>
@@ -91,17 +91,14 @@ export function LoginButton() {
 }
 
 export function EditorPanel() {
-  const { profile, updateProfile, addProject, updateProject, deleteProject, 
-          addCertificate, updateCertificate, deleteCertificate,
-          addExperience, updateExperience, deleteExperience,
-          addSkill, updateSkill, deleteSkill } = useData();
+  const { profile } = useData();
   const [activeTab, setActiveTab] = useState('profile');
   const [isMinimized, setIsMinimized] = useState(false);
 
   if (!profile) return null;
 
   return (
-    <div className={`fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-40 overflow-hidden transition-all ${isMinimized ? 'h-12' : ''}`}>
+    <div className={`fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-white dark:bg-gray-800 rounded-lg shadow-2xl z-40 overflow-hidden transition-all ${isMinimized ? 'h-12' : ''}`}>
       <div className="flex items-center justify-between px-2 py-1 bg-gray-100 dark:bg-gray-700">
         <span className="text-sm font-medium px-2">Panel de Editor</span>
         <Button variant="ghost" size="sm" onClick={() => setIsMinimized(!isMinimized)}>
@@ -123,56 +120,32 @@ export function EditorPanel() {
           <div className="max-h-[60vh] overflow-y-auto">
             <TabsContent value="profile" className="p-4 space-y-4">
               <h3 className="font-semibold">Información Personal</h3>
-              <ProfileEditor profile={profile} updateProfile={updateProfile} />
+              <ProfileEditor />
             </TabsContent>
 
             <TabsContent value="colors" className="p-4 space-y-4">
               <h3 className="font-semibold">Personalizar Colores</h3>
-              <ColorEditor profile={profile} updateProfile={updateProfile} />
+              <ColorEditor />
             </TabsContent>
 
             <TabsContent value="projects" className="p-4 space-y-4">
               <h3 className="font-semibold">Proyectos</h3>
-              <ProjectEditor 
-                projects={profile.projects} 
-                addProject={addProject} 
-                updateProject={updateProject}
-                deleteProject={deleteProject}
-                primaryColor={profile.primaryColor}
-              />
+              <ProjectList />
             </TabsContent>
 
             <TabsContent value="certificates" className="p-4 space-y-4">
               <h3 className="font-semibold">Certificados</h3>
-              <CertificateEditor 
-                certificates={profile.certificates} 
-                addCertificate={addCertificate}
-                updateCertificate={updateCertificate}
-                deleteCertificate={deleteCertificate}
-                primaryColor={profile.primaryColor}
-              />
+              <CertificateList />
             </TabsContent>
 
             <TabsContent value="experience" className="p-4 space-y-4">
               <h3 className="font-semibold">Experiencia</h3>
-              <ExperienceEditor 
-                experiences={profile.experiences} 
-                addExperience={addExperience}
-                updateExperience={updateExperience}
-                deleteExperience={deleteExperience}
-                primaryColor={profile.primaryColor}
-              />
+              <ExperienceList />
             </TabsContent>
 
             <TabsContent value="skills" className="p-4 space-y-4">
               <h3 className="font-semibold">Habilidades</h3>
-              <SkillEditor 
-                skills={profile.skills} 
-                addSkill={addSkill}
-                updateSkill={updateSkill}
-                deleteSkill={deleteSkill}
-                primaryColor={profile.primaryColor}
-              />
+              <SkillList />
             </TabsContent>
           </div>
         </Tabs>
@@ -181,16 +154,18 @@ export function EditorPanel() {
   );
 }
 
-function ProfileEditor({ profile, updateProfile }: { profile: any; updateProfile: (data: any) => Promise<void> }) {
-  const [formData, setFormData] = useState({
-    name: profile.name || '',
-    title: profile.title || '',
-    bio: profile.bio || '',
-    email: profile.email || '',
-    phone: profile.phone || '',
-    location: profile.location || '',
-    website: profile.website || '',
-  });
+// Profile Editor
+function ProfileEditor() {
+  const { profile, updateProfile } = useData();
+  const [formData, setFormData] = useState(() => ({
+    name: profile?.name || '',
+    title: profile?.title || '',
+    bio: profile?.bio || '',
+    email: profile?.email || '',
+    phone: profile?.phone || '',
+    location: profile?.location || '',
+    website: profile?.website || '',
+  }));
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -212,6 +187,7 @@ function ProfileEditor({ profile, updateProfile }: { profile: any; updateProfile
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           placeholder="Tu nombre"
+          className="bg-white"
         />
       </div>
       <div>
@@ -220,6 +196,7 @@ function ProfileEditor({ profile, updateProfile }: { profile: any; updateProfile
           value={formData.title}
           onChange={(e) => setFormData({ ...formData, title: e.target.value })}
           placeholder="Tu título"
+          className="bg-white"
         />
       </div>
       <div>
@@ -229,6 +206,7 @@ function ProfileEditor({ profile, updateProfile }: { profile: any; updateProfile
           onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
           placeholder="Una breve descripción sobre ti"
           rows={3}
+          className="bg-white"
         />
       </div>
       <div className="grid grid-cols-2 gap-2">
@@ -239,6 +217,7 @@ function ProfileEditor({ profile, updateProfile }: { profile: any; updateProfile
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             placeholder="tu@email.com"
+            className="bg-white"
           />
         </div>
         <div>
@@ -247,6 +226,7 @@ function ProfileEditor({ profile, updateProfile }: { profile: any; updateProfile
             value={formData.phone}
             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
             placeholder="+1 234 567 890"
+            className="bg-white"
           />
         </div>
       </div>
@@ -256,6 +236,7 @@ function ProfileEditor({ profile, updateProfile }: { profile: any; updateProfile
           value={formData.location}
           onChange={(e) => setFormData({ ...formData, location: e.target.value })}
           placeholder="Ciudad, País"
+          className="bg-white"
         />
       </div>
       <div>
@@ -264,6 +245,7 @@ function ProfileEditor({ profile, updateProfile }: { profile: any; updateProfile
           value={formData.website}
           onChange={(e) => setFormData({ ...formData, website: e.target.value })}
           placeholder="https://tusitio.com"
+          className="bg-white"
         />
       </div>
       <Button onClick={handleSave} className="w-full gap-2" disabled={saving}>
@@ -274,30 +256,42 @@ function ProfileEditor({ profile, updateProfile }: { profile: any; updateProfile
   );
 }
 
-function ColorEditor({ profile, updateProfile }: { profile: any; updateProfile: (data: any) => Promise<void> }) {
-  const [colors, setColors] = useState({
-    primaryColor: profile.primaryColor,
-    secondaryColor: profile.secondaryColor,
-    accentColor: profile.accentColor,
-    backgroundColor: profile.backgroundColor,
-    textColor: profile.textColor,
-  });
+// Color Editor
+function ColorEditor() {
+  const { profile, updateProfile } = useData();
+  const [colors, setColors] = useState(() => ({
+    primaryColor: profile?.primaryColor || '#3b82f6',
+    secondaryColor: profile?.secondaryColor || '#10b981',
+    accentColor: profile?.accentColor || '#f59e0b',
+    backgroundColor: profile?.backgroundColor || '#ffffff',
+    textColor: profile?.textColor || '#1f2937',
+  }));
+
+
 
   const handleSave = async () => {
     await updateProfile(colors);
     toast.success('Colores actualizados');
   };
 
+  const colorLabels: { [key: string]: string } = {
+    primaryColor: 'Color Primario',
+    secondaryColor: 'Color Secundario',
+    accentColor: 'Color de Acento',
+    backgroundColor: 'Color de Fondo',
+    textColor: 'Color de Texto',
+  };
+
   return (
     <div className="space-y-3">
       {Object.entries(colors).map(([key, value]) => (
         <div key={key} className="flex items-center gap-3">
-          <Label className="flex-1 capitalize text-sm">{key.replace(/([A-Z])/g, ' $1').trim()}</Label>
+          <Label className="flex-1 text-sm">{colorLabels[key] || key}</Label>
           <Input
             type="color"
             value={value}
             onChange={(e) => setColors({ ...colors, [key]: e.target.value })}
-            className="w-16 h-8 p-1"
+            className="w-16 h-8 p-1 bg-white"
           />
         </div>
       ))}
@@ -309,16 +303,12 @@ function ColorEditor({ profile, updateProfile }: { profile: any; updateProfile: 
   );
 }
 
-function ProjectEditor({ projects, addProject, updateProject, deleteProject, primaryColor }: { 
-  projects: any[]; 
-  addProject: (data: any) => Promise<void>;
-  updateProject: (id: string, data: any) => Promise<void>;
-  deleteProject: (id: string) => Promise<void>;
-  primaryColor: string;
-}) {
+// Project List with Edit/Delete
+function ProjectList() {
+  const { profile, addProject, updateProject, deleteProject } = useData();
   const [showAdd, setShowAdd] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [newProject, setNewProject] = useState({
+  const [editingProject, setEditingProject] = useState<any | null>(null);
+  const [formData, setFormData] = useState({
     title: '',
     description: '',
     url: '',
@@ -326,13 +316,34 @@ function ProjectEditor({ projects, addProject, updateProject, deleteProject, pri
     images: [] as string[],
   });
 
+  const resetForm = () => {
+    setFormData({ title: '', description: '', url: '', technologies: '', images: [] });
+  };
+
+  const openEditModal = (project: any) => {
+    const images = project.images ? JSON.parse(project.images) : [];
+    setFormData({
+      title: project.title || '',
+      description: project.description || '',
+      url: project.url || '',
+      technologies: project.technologies || '',
+      images: images,
+    });
+    setEditingProject(project);
+  };
+
+  const openAddModal = () => {
+    resetForm();
+    setShowAdd(true);
+  };
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
       Array.from(files).forEach(file => {
         const reader = new FileReader();
         reader.onload = (e) => {
-          setNewProject(prev => ({
+          setFormData(prev => ({
             ...prev,
             images: [...prev.images, e.target?.result as string],
           }));
@@ -343,22 +354,35 @@ function ProjectEditor({ projects, addProject, updateProject, deleteProject, pri
   };
 
   const removeImage = (index: number) => {
-    setNewProject(prev => ({
+    setFormData(prev => ({
       ...prev,
       images: prev.images.filter((_, i) => i !== index),
     }));
   };
 
-  const handleAdd = async () => {
-    if (!newProject.title) return toast.error('El título es requerido');
-    await addProject({
-      ...newProject,
-      images: JSON.stringify(newProject.images),
-      order: projects.length,
-    });
-    setNewProject({ title: '', description: '', url: '', technologies: '', images: [] });
-    setShowAdd(false);
-    toast.success('Proyecto agregado');
+  const handleSave = async () => {
+    if (!formData.title) return toast.error('El título es requerido');
+    
+    const data = {
+      ...formData,
+      images: JSON.stringify(formData.images),
+      order: editingProject ? editingProject.order : (profile?.projects?.length || 0),
+    };
+
+    try {
+      if (editingProject) {
+        await updateProject(editingProject.id, data);
+        toast.success('Proyecto actualizado');
+      } else {
+        await addProject(data);
+        toast.success('Proyecto agregado');
+      }
+      resetForm();
+      setShowAdd(false);
+      setEditingProject(null);
+    } catch (error) {
+      toast.error('Error al guardar');
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -370,68 +394,72 @@ function ProjectEditor({ projects, addProject, updateProject, deleteProject, pri
 
   return (
     <div className="space-y-3">
-      {projects.map((p) => (
-        <div key={p.id} className="p-2 bg-gray-100 dark:bg-gray-700 rounded text-sm group relative">
-          <div className="font-medium">{p.title}</div>
-          <div className="text-gray-500 text-xs">{p.technologies}</div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
-            onClick={() => handleDelete(p.id)}
-          >
-            <Trash2 size={14} className="text-red-500" />
-          </Button>
+      {profile?.projects?.map((p) => (
+        <div key={p.id} className="p-2 bg-gray-100 dark:bg-gray-700 rounded text-sm group relative flex justify-between items-center">
+          <div className="flex-1">
+            <div className="font-medium">{p.title}</div>
+            <div className="text-gray-500 text-xs">{p.technologies}</div>
+          </div>
+          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => openEditModal(p)}>
+              <Edit2 size={14} className="text-blue-500" />
+            </Button>
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handleDelete(p.id)}>
+              <Trash2 size={14} className="text-red-500" />
+            </Button>
+          </div>
         </div>
       ))}
       
-      {showAdd ? (
-        <div className="space-y-2 p-2 border rounded">
-          <Input
-            placeholder="Título *"
-            value={newProject.title}
-            onChange={(e) => setNewProject({ ...newProject, title: e.target.value })}
-          />
-          <Textarea
-            placeholder="Descripción"
-            value={newProject.description}
-            onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
-            rows={2}
-          />
-          <Input
-            placeholder="URL (opcional)"
-            value={newProject.url}
-            onChange={(e) => setNewProject({ ...newProject, url: e.target.value })}
-          />
-          <Input
-            placeholder="Tecnologías (separadas por coma)"
-            value={newProject.technologies}
-            onChange={(e) => setNewProject({ ...newProject, technologies: e.target.value })}
-          />
-          <div>
-            <Label className="text-xs">Imágenes del Proyecto</Label>
-            <Input type="file" accept="image/*" multiple onChange={handleImageUpload} />
-            <div className="flex gap-2 mt-2 flex-wrap">
-              {newProject.images.map((img, i) => (
-                <div key={i} className="relative">
-                  <img src={img} alt="" className="w-16 h-16 object-cover rounded" />
-                  <button
-                    onClick={() => removeImage(i)}
-                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center"
-                  >
-                    <X size={12} className="text-white" />
-                  </button>
-                </div>
-              ))}
+      {/* Add/Edit Modal */}
+      <Dialog open={showAdd || !!editingProject} onOpenChange={(open) => { if (!open) { setShowAdd(false); setEditingProject(null); resetForm(); }}}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white">
+          <DialogHeader>
+            <DialogTitle>{editingProject ? 'Editar Proyecto' : 'Nuevo Proyecto'}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label>Título *</Label>
+              <Input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} className="bg-white" />
+            </div>
+            <div>
+              <Label>Descripción</Label>
+              <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={3} className="bg-white" />
+            </div>
+            <div>
+              <Label>URL</Label>
+              <Input value={formData.url} onChange={(e) => setFormData({ ...formData, url: e.target.value })} className="bg-white" />
+            </div>
+            <div>
+              <Label>Tecnologías (separadas por coma)</Label>
+              <Input value={formData.technologies} onChange={(e) => setFormData({ ...formData, technologies: e.target.value })} className="bg-white" />
+            </div>
+            <div>
+              <Label>Imágenes</Label>
+              <Input type="file" accept="image/*" multiple onChange={handleImageUpload} className="bg-white" />
+              <div className="flex gap-2 mt-2 flex-wrap">
+                {formData.images.map((img, i) => (
+                  <div key={i} className="relative">
+                    <img src={img} alt="" className="w-16 h-16 object-cover rounded" />
+                    <button onClick={() => removeImage(i)} className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                      <X size={12} className="text-white" />
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={handleAdd} size="sm">Agregar</Button>
-            <Button variant="ghost" size="sm" onClick={() => setShowAdd(false)}>Cancelar</Button>
-          </div>
-        </div>
-      ) : (
-        <Button onClick={() => setShowAdd(true)} size="sm" className="w-full gap-2">
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowAdd(false); setEditingProject(null); resetForm(); }}>Cancelar</Button>
+            <Button onClick={handleSave}>Guardar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {!showAdd && !editingProject && (
+        <Button onClick={openAddModal} size="sm" className="w-full gap-2">
           <Plus size={16} />
           Agregar Proyecto
         </Button>
@@ -440,15 +468,12 @@ function ProjectEditor({ projects, addProject, updateProject, deleteProject, pri
   );
 }
 
-function CertificateEditor({ certificates, addCertificate, updateCertificate, deleteCertificate, primaryColor }: { 
-  certificates: any[]; 
-  addCertificate: (data: any) => Promise<void>;
-  updateCertificate: (id: string, data: any) => Promise<void>;
-  deleteCertificate: (id: string) => Promise<void>;
-  primaryColor: string;
-}) {
+// Certificate List with Edit/Delete
+function CertificateList() {
+  const { profile, addCertificate, updateCertificate, deleteCertificate } = useData();
   const [showAdd, setShowAdd] = useState(false);
-  const [newCert, setNewCert] = useState({
+  const [editingCert, setEditingCert] = useState<any | null>(null);
+  const [formData, setFormData] = useState({
     title: '',
     institution: '',
     issueDate: '',
@@ -456,14 +481,29 @@ function CertificateEditor({ certificates, addCertificate, updateCertificate, de
     fileType: '',
   });
 
+  const resetForm = () => {
+    setFormData({ title: '', institution: '', issueDate: '', fileData: '', fileType: '' });
+  };
+
+  const openEditModal = (cert: any) => {
+    setFormData({
+      title: cert.title || '',
+      institution: cert.institution || '',
+      issueDate: cert.issueDate || '',
+      fileData: cert.fileData || '',
+      fileType: cert.fileType || '',
+    });
+    setEditingCert(cert);
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        const fileType = file.type.includes('pdf') ? 'pdf' : file.type.split('/')[1];
-        setNewCert({
-          ...newCert,
+        const fileType = file.type.includes('pdf') ? 'pdf' : 'image';
+        setFormData({
+          ...formData,
           fileData: e.target?.result as string,
           fileType,
         });
@@ -472,15 +512,28 @@ function CertificateEditor({ certificates, addCertificate, updateCertificate, de
     }
   };
 
-  const handleAdd = async () => {
-    if (!newCert.title) return toast.error('El título es requerido');
-    await addCertificate({
-      ...newCert,
-      order: certificates.length,
-    });
-    setNewCert({ title: '', institution: '', issueDate: '', fileData: '', fileType: '' });
-    setShowAdd(false);
-    toast.success('Certificado agregado');
+  const handleSave = async () => {
+    if (!formData.title) return toast.error('El título es requerido');
+    
+    const data = {
+      ...formData,
+      order: editingCert ? editingCert.order : (profile?.certificates?.length || 0),
+    };
+
+    try {
+      if (editingCert) {
+        await updateCertificate(editingCert.id, data);
+        toast.success('Certificado actualizado');
+      } else {
+        await addCertificate(data);
+        toast.success('Certificado agregado');
+      }
+      resetForm();
+      setShowAdd(false);
+      setEditingCert(null);
+    } catch (error) {
+      toast.error('Error al guardar');
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -492,61 +545,70 @@ function CertificateEditor({ certificates, addCertificate, updateCertificate, de
 
   return (
     <div className="space-y-3">
-      {certificates.map((c) => (
-        <div key={c.id} className="p-2 bg-gray-100 dark:bg-gray-700 rounded text-sm group relative">
-          <div className="font-medium">{c.title}</div>
-          <div className="text-gray-500 text-xs">{c.institution}</div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
-            onClick={() => handleDelete(c.id)}
-          >
-            <Trash2 size={14} className="text-red-500" />
-          </Button>
+      {profile?.certificates?.map((c) => (
+        <div key={c.id} className="p-2 bg-gray-100 dark:bg-gray-700 rounded text-sm group relative flex justify-between items-center">
+          <div className="flex-1">
+            <div className="font-medium">{c.title}</div>
+            <div className="text-gray-500 text-xs">{c.institution}</div>
+          </div>
+          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => openEditModal(c)}>
+              <Edit2 size={14} className="text-blue-500" />
+            </Button>
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handleDelete(c.id)}>
+              <Trash2 size={14} className="text-red-500" />
+            </Button>
+          </div>
         </div>
       ))}
       
-      {showAdd ? (
-        <div className="space-y-2 p-2 border rounded">
-          <Input
-            placeholder="Título *"
-            value={newCert.title}
-            onChange={(e) => setNewCert({ ...newCert, title: e.target.value })}
-          />
-          <Input
-            placeholder="Institución"
-            value={newCert.institution}
-            onChange={(e) => setNewCert({ ...newCert, institution: e.target.value })}
-          />
-          <Input
-            placeholder="Fecha (ej: 2023-06)"
-            value={newCert.issueDate}
-            onChange={(e) => setNewCert({ ...newCert, issueDate: e.target.value })}
-          />
-          <div>
-            <Label className="text-xs">Archivo (PDF o Imagen)</Label>
-            <Input type="file" accept="image/*,.pdf" onChange={handleFileUpload} />
-            {newCert.fileData && (
-              <div className="mt-2">
-                {newCert.fileType === 'pdf' ? (
-                  <div className="flex items-center gap-2 text-sm text-green-600">
-                    <Award size={16} />
-                    PDF cargado ✓
-                  </div>
-                ) : (
-                  <img src={newCert.fileData} alt="Preview" className="w-20 h-20 object-cover rounded" />
-                )}
-              </div>
-            )}
+      {/* Add/Edit Modal */}
+      <Dialog open={showAdd || !!editingCert} onOpenChange={(open) => { if (!open) { setShowAdd(false); setEditingCert(null); resetForm(); }}}>
+        <DialogContent className="max-w-lg bg-white">
+          <DialogHeader>
+            <DialogTitle>{editingCert ? 'Editar Certificado' : 'Nuevo Certificado'}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label>Título *</Label>
+              <Input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} className="bg-white" />
+            </div>
+            <div>
+              <Label>Institución</Label>
+              <Input value={formData.institution} onChange={(e) => setFormData({ ...formData, institution: e.target.value })} className="bg-white" />
+            </div>
+            <div>
+              <Label>Fecha</Label>
+              <Input value={formData.issueDate} onChange={(e) => setFormData({ ...formData, issueDate: e.target.value })} className="bg-white" />
+            </div>
+            <div>
+              <Label>Archivo (PDF o Imagen)</Label>
+              <Input type="file" accept="image/*,.pdf" onChange={handleFileUpload} className="bg-white" />
+              {formData.fileData && (
+                <div className="mt-2">
+                  {formData.fileType === 'pdf' ? (
+                    <div className="flex items-center gap-2 text-sm text-green-600">
+                      <Award size={16} />
+                      PDF cargado ✓
+                    </div>
+                  ) : (
+                    <img src={formData.fileData} alt="Preview" className="w-20 h-20 object-cover rounded" />
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={handleAdd} size="sm">Agregar</Button>
-            <Button variant="ghost" size="sm" onClick={() => setShowAdd(false)}>Cancelar</Button>
-          </div>
-        </div>
-      ) : (
-        <Button onClick={() => setShowAdd(true)} size="sm" className="w-full gap-2">
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowAdd(false); setEditingCert(null); resetForm(); }}>Cancelar</Button>
+            <Button onClick={handleSave}>Guardar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {!showAdd && !editingCert && (
+        <Button onClick={() => { resetForm(); setShowAdd(true); }} size="sm" className="w-full gap-2">
           <Plus size={16} />
           Agregar Certificado
         </Button>
@@ -555,15 +617,12 @@ function CertificateEditor({ certificates, addCertificate, updateCertificate, de
   );
 }
 
-function ExperienceEditor({ experiences, addExperience, updateExperience, deleteExperience, primaryColor }: { 
-  experiences: any[]; 
-  addExperience: (data: any) => Promise<void>;
-  updateExperience: (id: string, data: any) => Promise<void>;
-  deleteExperience: (id: string) => Promise<void>;
-  primaryColor: string;
-}) {
+// Experience List with Edit/Delete
+function ExperienceList() {
+  const { profile, addExperience, updateExperience, deleteExperience } = useData();
   const [showAdd, setShowAdd] = useState(false);
-  const [newExp, setNewExp] = useState({
+  const [editingExp, setEditingExp] = useState<any | null>(null);
+  const [formData, setFormData] = useState({
     title: '',
     company: '',
     location: '',
@@ -573,15 +632,45 @@ function ExperienceEditor({ experiences, addExperience, updateExperience, delete
     type: 'work',
   });
 
-  const handleAdd = async () => {
-    if (!newExp.title || !newExp.company) return toast.error('Título y empresa son requeridos');
-    await addExperience({
-      ...newExp,
-      order: experiences.length,
+  const resetForm = () => {
+    setFormData({ title: '', company: '', location: '', startDate: '', endDate: '', description: '', type: 'work' });
+  };
+
+  const openEditModal = (exp: any) => {
+    setFormData({
+      title: exp.title || '',
+      company: exp.company || '',
+      location: exp.location || '',
+      startDate: exp.startDate || '',
+      endDate: exp.endDate || '',
+      description: exp.description || '',
+      type: exp.type || 'work',
     });
-    setNewExp({ title: '', company: '', location: '', startDate: '', endDate: '', description: '', type: 'work' });
-    setShowAdd(false);
-    toast.success('Experiencia agregada');
+    setEditingExp(exp);
+  };
+
+  const handleSave = async () => {
+    if (!formData.title || !formData.company) return toast.error('Título y empresa son requeridos');
+    
+    const data = {
+      ...formData,
+      order: editingExp ? editingExp.order : (profile?.experiences?.length || 0),
+    };
+
+    try {
+      if (editingExp) {
+        await updateExperience(editingExp.id, data);
+        toast.success('Experiencia actualizada');
+      } else {
+        await addExperience(data);
+        toast.success('Experiencia agregada');
+      }
+      resetForm();
+      setShowAdd(false);
+      setEditingExp(null);
+    } catch (error) {
+      toast.error('Error al guardar');
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -593,86 +682,81 @@ function ExperienceEditor({ experiences, addExperience, updateExperience, delete
 
   return (
     <div className="space-y-3">
-      {experiences.map((e) => (
+      {profile?.experiences?.map((e) => (
         <div key={e.id} className="p-2 bg-gray-100 dark:bg-gray-700 rounded text-sm group relative">
-          <div className="font-medium">{e.title}</div>
-          <div className="text-gray-500 text-xs">{e.company}</div>
-          <div className={`text-xs ${e.type === 'work' ? 'text-blue-500' : 'text-green-500'}`}>
-            {e.type === 'work' ? '💼 Trabajo' : '🎓 Educación'}
+          <div className="flex justify-between items-center">
+            <div className="flex-1">
+              <div className="font-medium">{e.title}</div>
+              <div className="text-gray-500 text-xs">{e.company}</div>
+              <div className={`text-xs ${e.type === 'work' ? 'text-blue-500' : 'text-green-500'}`}>
+                {e.type === 'work' ? '💼 Trabajo' : '🎓 Educación'}
+              </div>
+            </div>
+            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => openEditModal(e)}>
+                <Edit2 size={14} className="text-blue-500" />
+              </Button>
+              <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handleDelete(e.id)}>
+                <Trash2 size={14} className="text-red-500" />
+              </Button>
+            </div>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
-            onClick={() => handleDelete(e.id)}
-          >
-            <Trash2 size={14} className="text-red-500" />
-          </Button>
         </div>
       ))}
       
-      {showAdd ? (
-        <div className="space-y-2 p-2 border rounded">
-          <Input
-            placeholder="Título / Puesto *"
-            value={newExp.title}
-            onChange={(e) => setNewExp({ ...newExp, title: e.target.value })}
-          />
-          <Input
-            placeholder="Empresa / Institución *"
-            value={newExp.company}
-            onChange={(e) => setNewExp({ ...newExp, company: e.target.value })}
-          />
-          <Input
-            placeholder="Ubicación"
-            value={newExp.location}
-            onChange={(e) => setNewExp({ ...newExp, location: e.target.value })}
-          />
-          <div className="flex gap-2">
-            <Input
-              placeholder="Inicio (ej: 2020-01)"
-              value={newExp.startDate}
-              onChange={(e) => setNewExp({ ...newExp, startDate: e.target.value })}
-              className="flex-1"
-            />
-            <Input
-              placeholder="Fin (vacío = actual)"
-              value={newExp.endDate}
-              onChange={(e) => setNewExp({ ...newExp, endDate: e.target.value })}
-              className="flex-1"
-            />
+      {/* Add/Edit Modal */}
+      <Dialog open={showAdd || !!editingExp} onOpenChange={(open) => { if (!open) { setShowAdd(false); setEditingExp(null); resetForm(); }}}>
+        <DialogContent className="max-w-lg bg-white">
+          <DialogHeader>
+            <DialogTitle>{editingExp ? 'Editar Experiencia' : 'Nueva Experiencia'}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label>Título / Puesto *</Label>
+              <Input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} className="bg-white" />
+            </div>
+            <div>
+              <Label>Empresa / Institución *</Label>
+              <Input value={formData.company} onChange={(e) => setFormData({ ...formData, company: e.target.value })} className="bg-white" />
+            </div>
+            <div>
+              <Label>Ubicación</Label>
+              <Input value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} className="bg-white" />
+            </div>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <Label>Inicio</Label>
+                <Input value={formData.startDate} onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} placeholder="2020-01" className="bg-white" />
+              </div>
+              <div className="flex-1">
+                <Label>Fin (vacío = actual)</Label>
+                <Input value={formData.endDate} onChange={(e) => setFormData({ ...formData, endDate: e.target.value })} className="bg-white" />
+              </div>
+            </div>
+            <div>
+              <Label>Descripción</Label>
+              <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={2} className="bg-white" />
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant={formData.type === 'work' ? 'default' : 'outline'} onClick={() => setFormData({ ...formData, type: 'work' })} className="flex-1">
+                Trabajo
+              </Button>
+              <Button size="sm" variant={formData.type === 'education' ? 'default' : 'outline'} onClick={() => setFormData({ ...formData, type: 'education' })} className="flex-1">
+                Educación
+              </Button>
+            </div>
           </div>
-          <Textarea
-            placeholder="Descripción"
-            value={newExp.description}
-            onChange={(e) => setNewExp({ ...newExp, description: e.target.value })}
-            rows={2}
-          />
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant={newExp.type === 'work' ? 'default' : 'outline'}
-              onClick={() => setNewExp({ ...newExp, type: 'work' })}
-              className="flex-1"
-            >
-              Trabajo
-            </Button>
-            <Button
-              size="sm"
-              variant={newExp.type === 'education' ? 'default' : 'outline'}
-              onClick={() => setNewExp({ ...newExp, type: 'education' })}
-              className="flex-1"
-            >
-              Educación
-            </Button>
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={handleAdd} size="sm">Agregar</Button>
-            <Button variant="ghost" size="sm" onClick={() => setShowAdd(false)}>Cancelar</Button>
-          </div>
-        </div>
-      ) : (
-        <Button onClick={() => setShowAdd(true)} size="sm" className="w-full gap-2">
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowAdd(false); setEditingExp(null); resetForm(); }}>Cancelar</Button>
+            <Button onClick={handleSave}>Guardar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {!showAdd && !editingExp && (
+        <Button onClick={() => { resetForm(); setShowAdd(true); }} size="sm" className="w-full gap-2">
           <Plus size={16} />
           Agregar Experiencia
         </Button>
@@ -681,29 +765,52 @@ function ExperienceEditor({ experiences, addExperience, updateExperience, delete
   );
 }
 
-function SkillEditor({ skills, addSkill, updateSkill, deleteSkill, primaryColor }: { 
-  skills: any[]; 
-  addSkill: (data: any) => Promise<void>;
-  updateSkill: (id: string, data: any) => Promise<void>;
-  deleteSkill: (id: string) => Promise<void>;
-  primaryColor: string;
-}) {
+// Skill List with Edit/Delete
+function SkillList() {
+  const { profile, addSkill, updateSkill, deleteSkill } = useData();
   const [showAdd, setShowAdd] = useState(false);
-  const [newSkill, setNewSkill] = useState({
+  const [editingSkill, setEditingSkill] = useState<any | null>(null);
+  const [formData, setFormData] = useState({
     name: '',
     level: 80,
     category: 'General',
   });
 
-  const handleAdd = async () => {
-    if (!newSkill.name) return toast.error('El nombre es requerido');
-    await addSkill({
-      ...newSkill,
-      order: skills.length,
+  const resetForm = () => {
+    setFormData({ name: '', level: 80, category: 'General' });
+  };
+
+  const openEditModal = (skill: any) => {
+    setFormData({
+      name: skill.name || '',
+      level: skill.level || 80,
+      category: skill.category || 'General',
     });
-    setNewSkill({ name: '', level: 80, category: 'General' });
-    setShowAdd(false);
-    toast.success('Habilidad agregada');
+    setEditingSkill(skill);
+  };
+
+  const handleSave = async () => {
+    if (!formData.name) return toast.error('El nombre es requerido');
+    
+    const data = {
+      ...formData,
+      order: editingSkill ? editingSkill.order : (profile?.skills?.length || 0),
+    };
+
+    try {
+      if (editingSkill) {
+        await updateSkill(editingSkill.id, data);
+        toast.success('Habilidad actualizada');
+      } else {
+        await addSkill(data);
+        toast.success('Habilidad agregada');
+      }
+      resetForm();
+      setShowAdd(false);
+      setEditingSkill(null);
+    } catch (error) {
+      toast.error('Error al guardar');
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -717,64 +824,72 @@ function SkillEditor({ skills, addSkill, updateSkill, deleteSkill, primaryColor 
 
   return (
     <div className="space-y-3">
-      {skills.map((s) => (
-        <div key={s.id} className="p-2 bg-gray-100 dark:bg-gray-700 rounded text-sm flex justify-between items-center group relative">
+      {profile?.skills?.map((s) => (
+        <div key={s.id} className="p-2 bg-gray-100 dark:bg-gray-700 rounded text-sm flex justify-between items-center group">
           <div className="flex-1">
             <span className="font-medium">{s.name}</span>
             <span className="text-xs text-gray-500 ml-2">{s.category}</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-gray-500">{s.level}%</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
-              onClick={() => handleDelete(s.id)}
-            >
-              <Trash2 size={14} className="text-red-500" />
-            </Button>
+            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => openEditModal(s)}>
+                <Edit2 size={14} className="text-blue-500" />
+              </Button>
+              <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handleDelete(s.id)}>
+                <Trash2 size={14} className="text-red-500" />
+              </Button>
+            </div>
           </div>
         </div>
       ))}
       
-      {showAdd ? (
-        <div className="space-y-2 p-2 border rounded">
-          <Input
-            placeholder="Nombre de la habilidad *"
-            value={newSkill.name}
-            onChange={(e) => setNewSkill({ ...newSkill, name: e.target.value })}
-          />
-          <div>
-            <Label className="text-xs">Nivel: {newSkill.level}%</Label>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={newSkill.level}
-              onChange={(e) => setNewSkill({ ...newSkill, level: parseInt(e.target.value) })}
-              className="w-full"
-              style={{ accentColor: primaryColor }}
-            />
+      {/* Add/Edit Modal */}
+      <Dialog open={showAdd || !!editingSkill} onOpenChange={(open) => { if (!open) { setShowAdd(false); setEditingSkill(null); resetForm(); }}}>
+        <DialogContent className="max-w-lg bg-white">
+          <DialogHeader>
+            <DialogTitle>{editingSkill ? 'Editar Habilidad' : 'Nueva Habilidad'}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label>Nombre *</Label>
+              <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="bg-white" />
+            </div>
+            <div>
+              <Label>Nivel: {formData.level}%</Label>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={formData.level}
+                onChange={(e) => setFormData({ ...formData, level: parseInt(e.target.value) })}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <Label>Categoría</Label>
+              <select
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                className="w-full p-2 border rounded text-sm bg-white"
+              >
+                {categories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
           </div>
-          <div>
-            <Label className="text-xs">Categoría</Label>
-            <select
-              value={newSkill.category}
-              onChange={(e) => setNewSkill({ ...newSkill, category: e.target.value })}
-              className="w-full p-2 border rounded text-sm"
-            >
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={handleAdd} size="sm">Agregar</Button>
-            <Button variant="ghost" size="sm" onClick={() => setShowAdd(false)}>Cancelar</Button>
-          </div>
-        </div>
-      ) : (
-        <Button onClick={() => setShowAdd(true)} size="sm" className="w-full gap-2">
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowAdd(false); setEditingSkill(null); resetForm(); }}>Cancelar</Button>
+            <Button onClick={handleSave}>Guardar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {!showAdd && !editingSkill && (
+        <Button onClick={() => { resetForm(); setShowAdd(true); }} size="sm" className="w-full gap-2">
           <Plus size={16} />
           Agregar Habilidad
         </Button>

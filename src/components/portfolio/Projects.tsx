@@ -3,13 +3,14 @@
 import { motion } from 'framer-motion';
 import { useData } from '@/lib/contexts/data-context';
 import { useAuth } from '@/lib/contexts/auth-context';
-import { ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useState, useRef } from 'react';
+import { ExternalLink, ChevronLeft, ChevronRight, Edit2, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 export default function Projects() {
   const { profile } = useData();
-  const { isAuthenticated } = useAuth();
 
   if (!profile || profile.projects.length === 0) return null;
 
@@ -37,6 +38,8 @@ export default function Projects() {
 }
 
 function ProjectCard({ project, index, primaryColor }: { project: any; index: number; primaryColor: string }) {
+  const { isAuthenticated } = useAuth();
+  const { deleteProject } = useData();
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const images = project.images ? JSON.parse(project.images) : [];
@@ -49,14 +52,50 @@ function ProjectCard({ project, index, primaryColor }: { project: any; index: nu
     setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
   };
 
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm('¿Estás seguro de eliminar este proyecto?')) {
+      await deleteProject(project.id);
+      toast.success('Proyecto eliminado');
+    }
+  };
+
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    // The edit functionality is now in the EditorPanel
+    toast.info('Usa el panel de editor para modificar este proyecto');
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ delay: index * 0.1 }}
-      className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden group"
+      className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden group relative"
     >
+      {/* Editor buttons - only show when authenticated */}
+      {isAuthenticated && (
+        <div className="absolute top-2 right-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="h-8 w-8 p-0 bg-white shadow-md"
+            onClick={handleEdit}
+          >
+            <Edit2 size={14} className="text-blue-500" />
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="h-8 w-8 p-0 bg-white shadow-md"
+            onClick={handleDelete}
+          >
+            <Trash2 size={14} className="text-red-500" />
+          </Button>
+        </div>
+      )}
+
       {/* Project Images Carousel */}
       <div 
         className="relative h-48 overflow-hidden cursor-pointer"
@@ -100,6 +139,7 @@ function ProjectCard({ project, index, primaryColor }: { project: any; index: nu
               target="_blank"
               rel="noopener noreferrer"
               className="text-gray-500 hover:text-blue-500 transition-colors"
+              onClick={(e) => e.stopPropagation()}
             >
               <ExternalLink size={18} />
             </a>
@@ -130,7 +170,7 @@ function ProjectCard({ project, index, primaryColor }: { project: any; index: nu
 
       {/* Lightbox */}
       <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
-        <DialogContent className="max-w-4xl p-0 bg-black/90 border-none">
+        <DialogContent className="max-w-4xl p-0 bg-black border-none">
           <div className="relative w-full h-[80vh] flex items-center justify-center">
             {images.length > 0 && (
               <img

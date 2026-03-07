@@ -2,8 +2,11 @@
 
 import { motion } from 'framer-motion';
 import { useData } from '@/lib/contexts/data-context';
+import { useAuth } from '@/lib/contexts/auth-context';
 import { Progress } from '@/components/ui/progress';
-import { Code, Database, Server, Wrench, Palette, Cloud } from 'lucide-react';
+import { Code, Database, Server, Wrench, Palette, Cloud, Edit2, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 const categoryIcons: { [key: string]: typeof Code } = {
   Frontend: Palette,
@@ -63,30 +66,7 @@ export default function Skills() {
                 
                 <div className="space-y-4">
                   {skills.map((skill, index) => (
-                    <motion.div
-                      key={skill.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: index * 0.05 }}
-                    >
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm font-medium">{skill.name}</span>
-                        <span 
-                          className="text-sm"
-                          style={{ color: profile.primaryColor }}
-                        >
-                          {skill.level}%
-                        </span>
-                      </div>
-                      <Progress 
-                        value={skill.level} 
-                        className="h-2"
-                        style={{
-                          backgroundColor: `${profile.primaryColor}20`,
-                        }}
-                      />
-                    </motion.div>
+                    <SkillItem key={skill.id} skill={skill} index={index} primaryColor={profile.primaryColor} />
                   ))}
                 </div>
               </motion.div>
@@ -95,5 +75,70 @@ export default function Skills() {
         </div>
       </div>
     </section>
+  );
+}
+
+function SkillItem({ skill, index, primaryColor }: { skill: any; index: number; primaryColor: string }) {
+  const { isAuthenticated } = useAuth();
+  const { deleteSkill } = useData();
+
+  const handleDelete = async () => {
+    if (confirm('¿Estás seguro de eliminar esta habilidad?')) {
+      await deleteSkill(skill.id);
+      toast.success('Habilidad eliminada');
+    }
+  };
+
+  const handleEdit = () => {
+    toast.info('Usa el panel de editor para modificar esta habilidad');
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -20 }}
+      whileInView={{ opacity: 1, x: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay: index * 0.05 }}
+      className="group relative"
+    >
+      <div className="flex justify-between mb-1 items-center">
+        <span className="text-sm font-medium">{skill.name}</span>
+        <div className="flex items-center gap-2">
+          <span 
+            className="text-sm"
+            style={{ color: primaryColor }}
+          >
+            {skill.level}%
+          </span>
+          {isAuthenticated && (
+            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-5 w-5 p-0"
+                onClick={handleEdit}
+              >
+                <Edit2 size={12} className="text-blue-500" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-5 w-5 p-0"
+                onClick={handleDelete}
+              >
+                <Trash2 size={12} className="text-red-500" />
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+      <Progress 
+        value={skill.level} 
+        className="h-2"
+        style={{
+          backgroundColor: `${primaryColor}20`,
+        }}
+      />
+    </motion.div>
   );
 }
