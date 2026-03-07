@@ -1,0 +1,108 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Profile {
+  id              String   @id @default(cuid())
+  name            String   @default("Tu Nombre")
+  title           String   @default("Desarrollador Full Stack")
+  photo           String?  // base64 image
+  bio             String?  @default("Apasionado por la tecnología y el desarrollo de software.")
+  email           String?  @default("tu@email.com")
+  phone           String?  @default("+1 234 567 890")
+  location        String?  @default("Ciudad, País")
+  website         String?
+  primaryColor    String   @default("#3b82f6")
+  secondaryColor  String   @default("#1e40af")
+  accentColor     String   @default("#f59e0b")
+  backgroundColor String   @default("#ffffff")
+  textColor       String   @default("#1f2937")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  socialLinks     SocialLink[]
+  projects        Project[]
+  certificates    Certificate[]
+  experiences     Experience[]
+  skills          Skill[]
+}
+
+model SocialLink {
+  id        String   @id @default(cuid())
+  platform  String   // linkedin, github, twitter, instagram, etc.
+  url       String
+  icon      String   // lucide icon name
+  profileId String
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  url         String?
+  technologies String? // comma separated
+  images      String?  // JSON array of base64 images
+  startDate   String?
+  endDate     String?
+  featured    Boolean  @default(false)
+  order       Int      @default(0)
+  profileId   String
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Certificate {
+  id          String   @id @default(cuid())
+  title       String
+  institution String?
+  issueDate   String?
+  fileData    String?  // base64 file (PDF or image)
+  fileType    String?  // pdf, png, jpg, webp
+  description String?
+  order       Int      @default(0)
+  profileId   String
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Experience {
+  id          String   @id @default(cuid())
+  title       String   // Job title or degree
+  company     String   // Company or school name
+  location    String?
+  startDate   String
+  endDate     String?  // null if current
+  description String?
+  type        String   @default("work") // work, education
+  order       Int      @default(0)
+  profileId   String
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Skill {
+  id          String   @id @default(cuid())
+  name        String
+  level       Int      @default(80) // 0-100
+  icon        String?  // lucide icon name
+  category    String   @default("General") // Frontend, Backend, Tools, etc.
+  order       Int      @default(0)
+  profileId   String
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
