@@ -9,7 +9,8 @@ import {
   Mail, Phone, MapPin, Calendar, ExternalLink, 
   Briefcase, GraduationCap, Award, Code, 
   Camera, X, Download, Eye, Edit2, Trash2, Plus,
-  Linkedin, Github, Twitter, Globe, FileText, Image as ImageIcon, Save, Check
+  Linkedin, Github, Twitter, Globe, FileText, Image as ImageIcon, Save, Check,
+  Facebook, Instagram, Youtube, Twitch, Dribbble, Figma, MessageCircle, Send, Music
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,13 +25,39 @@ const emptySubscribe = () => () => {};
 const getSnapshot = () => true;
 const getServerSnapshot = () => false;
 
-// Icon map
+// Icon map - todas las redes sociales disponibles
 const socialIconMap: { [key: string]: typeof Linkedin } = {
   linkedin: Linkedin,
   github: Github,
   twitter: Twitter,
-  instagram: Globe,
+  instagram: Instagram,
+  facebook: Facebook,
+  youtube: Youtube,
+  tiktok: Music,
+  twitch: Twitch,
+  dribbble: Dribbble,
+  figma: Figma,
+  whatsapp: MessageCircle,
+  telegram: Send,
+  website: Globe,
 };
+
+// Lista de redes sociales para el editor
+const socialPlatforms = [
+  { id: 'linkedin', name: 'LinkedIn', icon: Linkedin, placeholder: 'https://linkedin.com/in/tu-perfil' },
+  { id: 'github', name: 'GitHub', icon: Github, placeholder: 'https://github.com/tu-usuario' },
+  { id: 'twitter', name: 'Twitter/X', icon: Twitter, placeholder: 'https://twitter.com/tu-usuario' },
+  { id: 'instagram', name: 'Instagram', icon: Instagram, placeholder: 'https://instagram.com/tu-usuario' },
+  { id: 'facebook', name: 'Facebook', icon: Facebook, placeholder: 'https://facebook.com/tu-pagina' },
+  { id: 'youtube', name: 'YouTube', icon: Youtube, placeholder: 'https://youtube.com/@tu-canal' },
+  { id: 'tiktok', name: 'TikTok', icon: Music, placeholder: 'https://tiktok.com/@tu-usuario' },
+  { id: 'twitch', name: 'Twitch', icon: Twitch, placeholder: 'https://twitch.tv/tu-canal' },
+  { id: 'dribbble', name: 'Dribbble', icon: Dribbble, placeholder: 'https://dribbble.com/tu-usuario' },
+  { id: 'figma', name: 'Figma', icon: Figma, placeholder: 'https://figma.com/@tu-usuario' },
+  { id: 'whatsapp', name: 'WhatsApp', icon: MessageCircle, placeholder: 'https://wa.me/1234567890' },
+  { id: 'telegram', name: 'Telegram', icon: Send, placeholder: 'https://t.me/tu-usuario' },
+  { id: 'website', name: 'Sitio Web', icon: Globe, placeholder: 'https://tu-sitio.com' },
+];
 
 function PortfolioApp() {
   const { profile, loading, updateProfile, addProject, updateProject, deleteProject, 
@@ -295,7 +322,7 @@ function PortfolioApp() {
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="flex justify-center gap-4">
-            {profile.socialLinks?.map((link: any) => {
+            {profile.socialLinks?.filter((link: any) => link.url && link.url.trim() !== '').map((link: any) => {
               const Icon = socialIconMap[link.icon?.toLowerCase()] || Globe;
               return (
                 <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer"
@@ -680,7 +707,7 @@ function PortfolioApp() {
             )}
           </motion.div>
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="flex justify-center gap-4 mt-8">
-            {profile.socialLinks?.map((link: any) => {
+            {profile.socialLinks?.filter((link: any) => link.url && link.url.trim() !== '').map((link: any) => {
               const Icon = socialIconMap[link.icon?.toLowerCase()] || Globe;
               return (
                 <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer"
@@ -779,6 +806,9 @@ function EditorPanel({ profile, updateProfile, onClose }: any) {
     primaryColor: '#3b82f6', secondaryColor: '#1e40af', accentColor: '#f59e0b',
     backgroundColor: '#ffffff', textColor: '#1f2937',
   });
+  
+  // Estado para redes sociales
+  const [socialLinks, setSocialLinks] = useState<{[key: string]: string}>({});
 
   // Initialize data from profile (only once when component mounts or profile changes significantly)
   const initialData = {
@@ -795,14 +825,57 @@ function EditorPanel({ profile, updateProfile, onClose }: any) {
     textColor: profile?.textColor || '#1f2937',
   };
   
+  // Inicializar redes sociales desde profile
+  const initialSocialLinks: {[key: string]: string} = {};
+  if (profile?.socialLinks) {
+    profile.socialLinks.forEach((link: any) => {
+      initialSocialLinks[link.icon] = link.url;
+    });
+  }
+  
   // Use initial data directly
   const currentData = data.name ? data : initialData;
+  const currentSocialLinks = Object.keys(socialLinks).length > 0 ? socialLinks : initialSocialLinks;
 
   const [tab, setTab] = useState('profile');
 
   const handleSave = async () => {
+    // Guardar datos del perfil
     await updateProfile(currentData);
-    toast.success('✅ Cambios guardados');
+    
+    // Guardar redes sociales
+    const socialLinksArray = Object.entries(currentSocialLinks)
+      .filter(([_, url]) => url && url.trim() !== '')
+      .map(([icon, url], index) => ({
+        platform: socialPlatforms.find(p => p.id === icon)?.name || icon,
+        url,
+        icon,
+        order: index
+      }));
+    
+    // Actualizar redes sociales via API
+    try {
+      // Primero eliminar todas las redes sociales existentes
+      for (const link of (profile?.socialLinks || [])) {
+        await fetch(`/api/portfolio/social?id=${link.id}`, { method: 'DELETE' });
+      }
+      // Luego crear las nuevas
+      for (const link of socialLinksArray) {
+        await fetch('/api/portfolio/social', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(link)
+        });
+      }
+      toast.success('✅ Cambios guardados');
+      window.location.reload();
+    } catch (error) {
+      toast.error('Error al guardar redes sociales');
+    }
+  };
+
+  const updateSocialLink = (platformId: string, url: string) => {
+    setSocialLinks({ ...currentSocialLinks, [platformId]: url });
   };
 
   return (
@@ -814,8 +887,9 @@ function EditorPanel({ profile, updateProfile, onClose }: any) {
       </div>
       
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="w-full grid grid-cols-2 bg-gray-50 p-1">
+        <TabsList className="w-full grid grid-cols-3 bg-gray-50 p-1">
           <TabsTrigger value="profile" className="text-sm">👤 Perfil</TabsTrigger>
+          <TabsTrigger value="social" className="text-sm">🌐 Redes</TabsTrigger>
           <TabsTrigger value="colors" className="text-sm">🎨 Colores</TabsTrigger>
         </TabsList>
 
@@ -835,6 +909,29 @@ function EditorPanel({ profile, updateProfile, onClose }: any) {
             </div>
             <div><Label className="text-xs text-gray-500">Ubicación</Label>
               <Input value={currentData.location} onChange={(e) => setData({ ...currentData, location: e.target.value })} className="mt-1" /></div>
+          </TabsContent>
+
+          <TabsContent value="social" className="space-y-2 mt-0">
+            <p className="text-xs text-gray-500 mb-3">Deja vacío las redes que no quieras mostrar</p>
+            {socialPlatforms.map((platform) => {
+              const Icon = platform.icon;
+              const url = currentSocialLinks[platform.id] || '';
+              return (
+                <div key={platform.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                  <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                    <Icon size={16} className="text-gray-600" />
+                  </div>
+                  <div className="flex-1">
+                    <Input 
+                      value={url} 
+                      onChange={(e) => updateSocialLink(platform.id, e.target.value)} 
+                      placeholder={platform.placeholder}
+                      className="text-xs h-8"
+                    />
+                  </div>
+                </div>
+              );
+            })}
           </TabsContent>
 
           <TabsContent value="colors" className="space-y-3 mt-0">
