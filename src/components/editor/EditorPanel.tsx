@@ -22,11 +22,30 @@ import {
   TabsTrigger,
 } from '@/components/ui/tabs';
 import { 
-  Lock, LogOut, Plus, Trash2, Edit2, Palette, 
+  Lock, LogOut, Plus, Trash2, Palette, 
   Folder, Award, Briefcase, Code, Save, User,
-  ChevronDown, ChevronUp, X
+  ChevronDown, ChevronUp, X, RotateCcw, Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
+
+// Temas predefinidos
+const colorThemes = [
+  { name: 'Azul Profesional', primary: '#3b82f6', secondary: '#1e40af', accent: '#f59e0b', background: '#ffffff', text: '#1f2937' },
+  { name: 'Verde Naturaleza', primary: '#10b981', secondary: '#059669', accent: '#8b5cf6', background: '#f0fdf4', text: '#1f2937' },
+  { name: 'Púrpura Moderno', primary: '#8b5cf6', secondary: '#6d28d9', accent: '#f59e0b', background: '#faf5ff', text: '#1f2937' },
+  { name: 'Rojo Energético', primary: '#ef4444', secondary: '#b91c1c', accent: '#fbbf24', background: '#fff5f5', text: '#1f2937' },
+  { name: 'Naranja Creativo', primary: '#f97316', secondary: '#ea580c', accent: '#3b82f6', background: '#fff7ed', text: '#1f2937' },
+  { name: 'Oscuro Elegante', primary: '#6366f1', secondary: '#4f46e5', accent: '#fbbf24', background: '#0f172a', text: '#e2e8f0' },
+  { name: 'Rosa Moderno', primary: '#ec4899', secondary: '#db2777', accent: '#14b8a6', background: '#fdf2f8', text: '#1f2937' },
+  { name: 'Cyan Tecnológico', primary: '#06b6d4', secondary: '#0891b2', accent: '#f43f5e', background: '#ecfeff', text: '#0f172a' },
+];
+
+// Paletas de colores
+const colorPalettes = [
+  '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e', '#10b981', '#14b8a6',
+  '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899',
+  '#f43f5e', '#1f2937', '#374151', '#ffffff'
+];
 
 export function LoginButton() {
   const { isAuthenticated, login, logout } = useAuth();
@@ -48,7 +67,7 @@ export function LoginButton() {
       <Button
         onClick={logout}
         variant="outline"
-        className="fixed top-4 right-4 z-50 gap-2"
+        className="fixed top-4 right-4 z-50 gap-2 bg-white shadow-lg"
       >
         <LogOut size={16} />
         Salir del Editor
@@ -59,42 +78,25 @@ export function LoginButton() {
   return (
     <Dialog open={showLogin} onOpenChange={setShowLogin}>
       <DialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="fixed top-4 right-4 z-50 opacity-20 hover:opacity-100 transition-opacity"
-        >
+        <Button variant="ghost" size="sm" className="fixed top-4 right-4 z-50 opacity-20 hover:opacity-100 transition-opacity">
           <Lock size={16} />
         </Button>
       </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Modo Editor</DialogTitle>
-        </DialogHeader>
+      <DialogContent className="bg-white">
+        <DialogHeader><DialogTitle>Modo Editor</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <Label htmlFor="password">Contraseña</Label>
-          <Input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-            placeholder="Ingresa la contraseña"
-          />
+          <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLogin()} placeholder="Ingresa la contraseña" />
         </div>
-        <DialogFooter>
-          <Button onClick={handleLogin}>Entrar</Button>
-        </DialogFooter>
+        <DialogFooter><Button onClick={handleLogin}>Entrar</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
 
 export function EditorPanel() {
-  const { profile, updateProfile, addProject, updateProject, deleteProject, 
-          addCertificate, updateCertificate, deleteCertificate,
-          addExperience, updateExperience, deleteExperience,
-          addSkill, updateSkill, deleteSkill } = useData();
+  const { profile } = useData();
+  const { isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
   const [isMinimized, setIsMinimized] = useState(false);
 
@@ -103,7 +105,7 @@ export function EditorPanel() {
   return (
     <div className={`fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-40 overflow-hidden transition-all ${isMinimized ? 'h-12' : ''}`}>
       <div className="flex items-center justify-between px-2 py-1 bg-gray-100 dark:bg-gray-700">
-        <span className="text-sm font-medium px-2">Panel de Editor</span>
+        <span className="text-sm font-medium px-2">🎨 Panel de Editor</span>
         <Button variant="ghost" size="sm" onClick={() => setIsMinimized(!isMinimized)}>
           {isMinimized ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </Button>
@@ -111,69 +113,16 @@ export function EditorPanel() {
       
       {!isMinimized && (
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full grid grid-cols-6 h-auto">
-            <TabsTrigger value="profile" className="p-2"><User size={14} /></TabsTrigger>
-            <TabsTrigger value="colors" className="p-2"><Palette size={14} /></TabsTrigger>
-            <TabsTrigger value="projects" className="p-2"><Folder size={14} /></TabsTrigger>
-            <TabsTrigger value="certificates" className="p-2"><Award size={14} /></TabsTrigger>
-            <TabsTrigger value="experience" className="p-2"><Briefcase size={14} /></TabsTrigger>
-            <TabsTrigger value="skills" className="p-2"><Code size={14} /></TabsTrigger>
+          <TabsList className="w-full grid grid-cols-3 h-auto">
+            <TabsTrigger value="profile" className="p-2 text-xs gap-1"><User size={14} /> Perfil</TabsTrigger>
+            <TabsTrigger value="colors" className="p-2 text-xs gap-1"><Palette size={14} /> Estilos</TabsTrigger>
+            <TabsTrigger value="content" className="p-2 text-xs gap-1"><Folder size={14} /> Contenido</TabsTrigger>
           </TabsList>
 
           <div className="max-h-[60vh] overflow-y-auto">
-            <TabsContent value="profile" className="p-4 space-y-4">
-              <h3 className="font-semibold">Información Personal</h3>
-              <ProfileEditor profile={profile} updateProfile={updateProfile} />
-            </TabsContent>
-
-            <TabsContent value="colors" className="p-4 space-y-4">
-              <h3 className="font-semibold">Personalizar Colores</h3>
-              <ColorEditor profile={profile} updateProfile={updateProfile} />
-            </TabsContent>
-
-            <TabsContent value="projects" className="p-4 space-y-4">
-              <h3 className="font-semibold">Proyectos</h3>
-              <ProjectEditor 
-                projects={profile.projects} 
-                addProject={addProject} 
-                updateProject={updateProject}
-                deleteProject={deleteProject}
-                primaryColor={profile.primaryColor}
-              />
-            </TabsContent>
-
-            <TabsContent value="certificates" className="p-4 space-y-4">
-              <h3 className="font-semibold">Certificados</h3>
-              <CertificateEditor 
-                certificates={profile.certificates} 
-                addCertificate={addCertificate}
-                updateCertificate={updateCertificate}
-                deleteCertificate={deleteCertificate}
-                primaryColor={profile.primaryColor}
-              />
-            </TabsContent>
-
-            <TabsContent value="experience" className="p-4 space-y-4">
-              <h3 className="font-semibold">Experiencia</h3>
-              <ExperienceEditor 
-                experiences={profile.experiences} 
-                addExperience={addExperience}
-                updateExperience={updateExperience}
-                deleteExperience={deleteExperience}
-                primaryColor={profile.primaryColor}
-              />
-            </TabsContent>
-
-            <TabsContent value="skills" className="p-4 space-y-4">
-              <h3 className="font-semibold">Habilidades</h3>
-              <SkillEditor 
-                skills={profile.skills} 
-                addSkill={addSkill}
-                updateSkill={updateSkill}
-                deleteSkill={deleteSkill}
-                primaryColor={profile.primaryColor}
-              />
-            </TabsContent>
+            <TabsContent value="profile" className="p-4"><ProfileEditor /></TabsContent>
+            <TabsContent value="colors" className="p-4"><ColorEditorEnhanced /></TabsContent>
+            <TabsContent value="content" className="p-4"><ContentTabs /></TabsContent>
           </div>
         </Tabs>
       )}
@@ -181,15 +130,16 @@ export function EditorPanel() {
   );
 }
 
-function ProfileEditor({ profile, updateProfile }: { profile: any; updateProfile: (data: any) => Promise<void> }) {
+function ProfileEditor() {
+  const { profile, updateProfile } = useData();
   const [formData, setFormData] = useState({
-    name: profile.name || '',
-    title: profile.title || '',
-    bio: profile.bio || '',
-    email: profile.email || '',
-    phone: profile.phone || '',
-    location: profile.location || '',
-    website: profile.website || '',
+    name: profile?.name || '',
+    title: profile?.title || '',
+    bio: profile?.bio || '',
+    email: profile?.email || '',
+    phone: profile?.phone || '',
+    location: profile?.location || '',
+    website: profile?.website || '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -198,7 +148,7 @@ function ProfileEditor({ profile, updateProfile }: { profile: any; updateProfile
     try {
       await updateProfile(formData);
       toast.success('Perfil actualizado');
-    } catch (error) {
+    } catch {
       toast.error('Error al guardar');
     }
     setSaving(false);
@@ -206,81 +156,28 @@ function ProfileEditor({ profile, updateProfile }: { profile: any; updateProfile
 
   return (
     <div className="space-y-3">
-      <div>
-        <Label className="text-xs">Nombre</Label>
-        <Input
-          value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          placeholder="Tu nombre"
-        />
-      </div>
-      <div>
-        <Label className="text-xs">Título Profesional</Label>
-        <Input
-          value={formData.title}
-          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-          placeholder="Tu título"
-        />
-      </div>
-      <div>
-        <Label className="text-xs">Biografía</Label>
-        <Textarea
-          value={formData.bio}
-          onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-          placeholder="Una breve descripción sobre ti"
-          rows={3}
-        />
-      </div>
+      <div><Label className="text-xs">Nombre</Label><Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Tu nombre" /></div>
+      <div><Label className="text-xs">Título Profesional</Label><Input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} placeholder="Tu título" /></div>
+      <div><Label className="text-xs">Biografía</Label><Textarea value={formData.bio} onChange={(e) => setFormData({ ...formData, bio: e.target.value })} placeholder="Descripción breve" rows={3} /></div>
       <div className="grid grid-cols-2 gap-2">
-        <div>
-          <Label className="text-xs">Email</Label>
-          <Input
-            type="email"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            placeholder="tu@email.com"
-          />
-        </div>
-        <div>
-          <Label className="text-xs">Teléfono</Label>
-          <Input
-            value={formData.phone}
-            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-            placeholder="+1 234 567 890"
-          />
-        </div>
+        <div><Label className="text-xs">Email</Label><Input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="tu@email.com" /></div>
+        <div><Label className="text-xs">Teléfono</Label><Input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="+1 234 567 890" /></div>
       </div>
-      <div>
-        <Label className="text-xs">Ubicación</Label>
-        <Input
-          value={formData.location}
-          onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-          placeholder="Ciudad, País"
-        />
-      </div>
-      <div>
-        <Label className="text-xs">Sitio Web</Label>
-        <Input
-          value={formData.website}
-          onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-          placeholder="https://tusitio.com"
-        />
-      </div>
-      <Button onClick={handleSave} className="w-full gap-2" disabled={saving}>
-        <Save size={16} />
-        {saving ? 'Guardando...' : 'Guardar Perfil'}
-      </Button>
+      <div><Label className="text-xs">Ubicación</Label><Input value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} placeholder="Ciudad, País" /></div>
+      <div><Label className="text-xs">Sitio Web</Label><Input value={formData.website} onChange={(e) => setFormData({ ...formData, website: e.target.value })} placeholder="https://tusitio.com" /></div>
+      <Button onClick={handleSave} className="w-full gap-2" disabled={saving}><Save size={16} />{saving ? 'Guardando...' : 'Guardar Perfil'}</Button>
     </div>
   );
 }
 
-function ColorEditor({ profile, updateProfile }: { profile: any; updateProfile: (data: any) => Promise<void> }) {
+function ColorEditorEnhanced() {
+  const { profile, updateProfile } = useData();
   const [colors, setColors] = useState({
-    primaryColor: profile.primaryColor,
-    secondaryColor: profile.secondaryColor,
-    accentColor: profile.accentColor,
-    backgroundColor: profile.backgroundColor,
-    textColor: profile.textColor,
+    primaryColor: profile?.primaryColor || '#3b82f6',
+    secondaryColor: profile?.secondaryColor || '#1e40af',
+    accentColor: profile?.accentColor || '#f59e0b',
+    backgroundColor: profile?.backgroundColor || '#ffffff',
+    textColor: profile?.textColor || '#1f2937',
   });
 
   const handleSave = async () => {
@@ -288,497 +185,120 @@ function ColorEditor({ profile, updateProfile }: { profile: any; updateProfile: 
     toast.success('Colores actualizados');
   };
 
-  return (
-    <div className="space-y-3">
-      {Object.entries(colors).map(([key, value]) => (
-        <div key={key} className="flex items-center gap-3">
-          <Label className="flex-1 capitalize text-sm">{key.replace(/([A-Z])/g, ' $1').trim()}</Label>
-          <Input
-            type="color"
-            value={value}
-            onChange={(e) => setColors({ ...colors, [key]: e.target.value })}
-            className="w-16 h-8 p-1"
-          />
-        </div>
-      ))}
-      <Button onClick={handleSave} className="w-full gap-2">
-        <Save size={16} />
-        Guardar Colores
-      </Button>
-    </div>
-  );
-}
-
-function ProjectEditor({ projects, addProject, updateProject, deleteProject, primaryColor }: { 
-  projects: any[]; 
-  addProject: (data: any) => Promise<void>;
-  updateProject: (id: string, data: any) => Promise<void>;
-  deleteProject: (id: string) => Promise<void>;
-  primaryColor: string;
-}) {
-  const [showAdd, setShowAdd] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [newProject, setNewProject] = useState({
-    title: '',
-    description: '',
-    url: '',
-    technologies: '',
-    images: [] as string[],
-  });
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      Array.from(files).forEach(file => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          setNewProject(prev => ({
-            ...prev,
-            images: [...prev.images, e.target?.result as string],
-          }));
-        };
-        reader.readAsDataURL(file);
-      });
-    }
-  };
-
-  const removeImage = (index: number) => {
-    setNewProject(prev => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index),
-    }));
-  };
-
-  const handleAdd = async () => {
-    if (!newProject.title) return toast.error('El título es requerido');
-    await addProject({
-      ...newProject,
-      images: JSON.stringify(newProject.images),
-      order: projects.length,
+  const applyTheme = (theme: typeof colorThemes[0]) => {
+    setColors({
+      primaryColor: theme.primary,
+      secondaryColor: theme.secondary,
+      accentColor: theme.accent,
+      backgroundColor: theme.background,
+      textColor: theme.text,
     });
-    setNewProject({ title: '', description: '', url: '', technologies: '', images: [] });
-    setShowAdd(false);
-    toast.success('Proyecto agregado');
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('¿Estás seguro de eliminar este proyecto?')) {
-      await deleteProject(id);
-      toast.success('Proyecto eliminado');
-    }
+  const colorLabels: { [key: string]: { label: string; description: string } } = {
+    primaryColor: { label: 'Primario', description: 'Títulos y botones' },
+    secondaryColor: { label: 'Secundario', description: 'Elementos secundarios' },
+    accentColor: { label: 'Acento', description: 'Detalles destacados' },
+    backgroundColor: { label: 'Fondo', description: 'Fondo de la página' },
+    textColor: { label: 'Texto', description: 'Texto principal' },
   };
 
   return (
-    <div className="space-y-3">
-      {projects.map((p) => (
-        <div key={p.id} className="p-2 bg-gray-100 dark:bg-gray-700 rounded text-sm group relative">
-          <div className="font-medium">{p.title}</div>
-          <div className="text-gray-500 text-xs">{p.technologies}</div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
-            onClick={() => handleDelete(p.id)}
-          >
-            <Trash2 size={14} className="text-red-500" />
-          </Button>
+    <div className="space-y-4">
+      {/* Temas rápidos */}
+      <div>
+        <Label className="text-xs font-semibold mb-2 block">🎯 Temas Rápidos</Label>
+        <div className="grid grid-cols-4 gap-1">
+          {colorThemes.map((theme, i) => (
+            <button key={i} onClick={() => applyTheme(theme)} className="group p-2 rounded-lg border border-gray-200 hover:border-gray-400 transition-all" title={theme.name}>
+              <div className="flex gap-0.5 h-3">
+                <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: theme.primary }} />
+                <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: theme.secondary }} />
+                <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: theme.accent }} />
+              </div>
+            </button>
+          ))}
         </div>
-      ))}
-      
-      {showAdd ? (
-        <div className="space-y-2 p-2 border rounded">
-          <Input
-            placeholder="Título *"
-            value={newProject.title}
-            onChange={(e) => setNewProject({ ...newProject, title: e.target.value })}
-          />
-          <Textarea
-            placeholder="Descripción"
-            value={newProject.description}
-            onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
-            rows={2}
-          />
-          <Input
-            placeholder="URL (opcional)"
-            value={newProject.url}
-            onChange={(e) => setNewProject({ ...newProject, url: e.target.value })}
-          />
-          <Input
-            placeholder="Tecnologías (separadas por coma)"
-            value={newProject.technologies}
-            onChange={(e) => setNewProject({ ...newProject, technologies: e.target.value })}
-          />
-          <div>
-            <Label className="text-xs">Imágenes del Proyecto</Label>
-            <Input type="file" accept="image/*" multiple onChange={handleImageUpload} />
-            <div className="flex gap-2 mt-2 flex-wrap">
-              {newProject.images.map((img, i) => (
-                <div key={i} className="relative">
-                  <img src={img} alt="" className="w-16 h-16 object-cover rounded" />
-                  <button
-                    onClick={() => removeImage(i)}
-                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center"
-                  >
-                    <X size={12} className="text-white" />
-                  </button>
-                </div>
+      </div>
+
+      <div className="border-t border-gray-200 my-3" />
+
+      {/* Colores personalizados */}
+      <div className="space-y-3">
+        <Label className="text-xs font-semibold">🎨 Colores Personalizados</Label>
+        {Object.entries(colors).map(([key, value]) => (
+          <div key={key} className="bg-gray-50 p-3 rounded-lg">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-sm font-medium">{colorLabels[key]?.label || key}</span>
+              <div className="flex items-center gap-2">
+                <input type="color" value={value} onChange={(e) => setColors({ ...colors, [key]: e.target.value })} className="w-8 h-8 rounded cursor-pointer border-2 border-white shadow" />
+                <input type="text" value={value} onChange={(e) => setColors({ ...colors, [key]: e.target.value })} className="w-20 text-xs p-1 border rounded font-mono" />
+              </div>
+            </div>
+            <p className="text-xs text-gray-500">{colorLabels[key]?.description}</p>
+            <div className="flex gap-1 mt-2 flex-wrap">
+              {colorPalettes.slice(0, 10).map((color, i) => (
+                <button key={i} onClick={() => setColors({ ...colors, [key]: color })} className="w-5 h-5 rounded-sm border border-gray-300 hover:scale-110 transition-transform" style={{ backgroundColor: color }} />
               ))}
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={handleAdd} size="sm">Agregar</Button>
-            <Button variant="ghost" size="sm" onClick={() => setShowAdd(false)}>Cancelar</Button>
-          </div>
+        ))}
+      </div>
+
+      {/* Vista previa */}
+      <div className="p-4 rounded-lg border-2 border-dashed" style={{ backgroundColor: colors.backgroundColor, borderColor: colors.primaryColor }}>
+        <h4 style={{ color: colors.primaryColor }} className="font-bold">Vista Previa</h4>
+        <p style={{ color: colors.textColor }} className="text-sm mt-1">Este es un ejemplo de cómo se verá.</p>
+        <div className="flex gap-2 mt-2">
+          <span className="px-2 py-1 text-xs rounded-full text-white" style={{ backgroundColor: colors.primaryColor }}>Primario</span>
+          <span className="px-2 py-1 text-xs rounded-full text-white" style={{ backgroundColor: colors.secondaryColor }}>Secundario</span>
+          <span className="px-2 py-1 text-xs rounded-full text-white" style={{ backgroundColor: colors.accentColor }}>Acento</span>
         </div>
-      ) : (
-        <Button onClick={() => setShowAdd(true)} size="sm" className="w-full gap-2">
-          <Plus size={16} />
-          Agregar Proyecto
-        </Button>
-      )}
+      </div>
+
+      <Button onClick={handleSave} className="w-full gap-2" style={{ backgroundColor: colors.primaryColor }}><Save size={16} />Guardar Colores</Button>
     </div>
   );
 }
 
-function CertificateEditor({ certificates, addCertificate, updateCertificate, deleteCertificate, primaryColor }: { 
-  certificates: any[]; 
-  addCertificate: (data: any) => Promise<void>;
-  updateCertificate: (id: string, data: any) => Promise<void>;
-  deleteCertificate: (id: string) => Promise<void>;
-  primaryColor: string;
-}) {
-  const [showAdd, setShowAdd] = useState(false);
-  const [newCert, setNewCert] = useState({
-    title: '',
-    institution: '',
-    issueDate: '',
-    fileData: '',
-    fileType: '',
-  });
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const fileType = file.type.includes('pdf') ? 'pdf' : file.type.split('/')[1];
-        setNewCert({
-          ...newCert,
-          fileData: e.target?.result as string,
-          fileType,
-        });
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleAdd = async () => {
-    if (!newCert.title) return toast.error('El título es requerido');
-    await addCertificate({
-      ...newCert,
-      order: certificates.length,
-    });
-    setNewCert({ title: '', institution: '', issueDate: '', fileData: '', fileType: '' });
-    setShowAdd(false);
-    toast.success('Certificado agregado');
-  };
-
-  const handleDelete = async (id: string) => {
-    if (confirm('¿Estás seguro de eliminar este certificado?')) {
-      await deleteCertificate(id);
-      toast.success('Certificado eliminado');
-    }
-  };
+function ContentTabs() {
+  const { profile } = useData();
+  const [subTab, setSubTab] = useState('projects');
+  if (!profile) return null;
 
   return (
-    <div className="space-y-3">
-      {certificates.map((c) => (
-        <div key={c.id} className="p-2 bg-gray-100 dark:bg-gray-700 rounded text-sm group relative">
-          <div className="font-medium">{c.title}</div>
-          <div className="text-gray-500 text-xs">{c.institution}</div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
-            onClick={() => handleDelete(c.id)}
-          >
-            <Trash2 size={14} className="text-red-500" />
-          </Button>
+    <Tabs value={subTab} onValueChange={setSubTab}>
+      <TabsList className="w-full grid grid-cols-4 h-auto mb-2">
+        <TabsTrigger value="projects" className="p-1.5 text-xs"><Folder size={12} /></TabsTrigger>
+        <TabsTrigger value="certificates" className="p-1.5 text-xs"><Award size={12} /></TabsTrigger>
+        <TabsTrigger value="experience" className="p-1.5 text-xs"><Briefcase size={12} /></TabsTrigger>
+        <TabsTrigger value="skills" className="p-1.5 text-xs"><Code size={12} /></TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="projects">
+        <div className="text-xs font-medium mb-2 px-1">Proyectos ({profile.projects.length}) - Edita directamente en la página</div>
+        <div className="space-y-2 max-h-[30vh] overflow-y-auto">
+          {profile.projects.map((p) => (<div key={p.id} className="p-2 bg-gray-100 rounded text-sm"><div className="font-medium">{p.title}</div><div className="text-gray-500 text-xs">{p.technologies}</div></div>))}
         </div>
-      ))}
-      
-      {showAdd ? (
-        <div className="space-y-2 p-2 border rounded">
-          <Input
-            placeholder="Título *"
-            value={newCert.title}
-            onChange={(e) => setNewCert({ ...newCert, title: e.target.value })}
-          />
-          <Input
-            placeholder="Institución"
-            value={newCert.institution}
-            onChange={(e) => setNewCert({ ...newCert, institution: e.target.value })}
-          />
-          <Input
-            placeholder="Fecha (ej: 2023-06)"
-            value={newCert.issueDate}
-            onChange={(e) => setNewCert({ ...newCert, issueDate: e.target.value })}
-          />
-          <div>
-            <Label className="text-xs">Archivo (PDF o Imagen)</Label>
-            <Input type="file" accept="image/*,.pdf" onChange={handleFileUpload} />
-            {newCert.fileData && (
-              <div className="mt-2">
-                {newCert.fileType === 'pdf' ? (
-                  <div className="flex items-center gap-2 text-sm text-green-600">
-                    <Award size={16} />
-                    PDF cargado ✓
-                  </div>
-                ) : (
-                  <img src={newCert.fileData} alt="Preview" className="w-20 h-20 object-cover rounded" />
-                )}
-              </div>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={handleAdd} size="sm">Agregar</Button>
-            <Button variant="ghost" size="sm" onClick={() => setShowAdd(false)}>Cancelar</Button>
-          </div>
+      </TabsContent>
+      <TabsContent value="certificates">
+        <div className="text-xs font-medium mb-2 px-1">Certificados ({profile.certificates.length}) - Edita directamente en la página</div>
+        <div className="space-y-2 max-h-[30vh] overflow-y-auto">
+          {profile.certificates.map((c) => (<div key={c.id} className="p-2 bg-gray-100 rounded text-sm"><div className="font-medium">{c.title}</div><div className="text-gray-500 text-xs">{c.institution}</div></div>))}
         </div>
-      ) : (
-        <Button onClick={() => setShowAdd(true)} size="sm" className="w-full gap-2">
-          <Plus size={16} />
-          Agregar Certificado
-        </Button>
-      )}
-    </div>
-  );
-}
-
-function ExperienceEditor({ experiences, addExperience, updateExperience, deleteExperience, primaryColor }: { 
-  experiences: any[]; 
-  addExperience: (data: any) => Promise<void>;
-  updateExperience: (id: string, data: any) => Promise<void>;
-  deleteExperience: (id: string) => Promise<void>;
-  primaryColor: string;
-}) {
-  const [showAdd, setShowAdd] = useState(false);
-  const [newExp, setNewExp] = useState({
-    title: '',
-    company: '',
-    location: '',
-    startDate: '',
-    endDate: '',
-    description: '',
-    type: 'work',
-  });
-
-  const handleAdd = async () => {
-    if (!newExp.title || !newExp.company) return toast.error('Título y empresa son requeridos');
-    await addExperience({
-      ...newExp,
-      order: experiences.length,
-    });
-    setNewExp({ title: '', company: '', location: '', startDate: '', endDate: '', description: '', type: 'work' });
-    setShowAdd(false);
-    toast.success('Experiencia agregada');
-  };
-
-  const handleDelete = async (id: string) => {
-    if (confirm('¿Estás seguro de eliminar esta experiencia?')) {
-      await deleteExperience(id);
-      toast.success('Experiencia eliminada');
-    }
-  };
-
-  return (
-    <div className="space-y-3">
-      {experiences.map((e) => (
-        <div key={e.id} className="p-2 bg-gray-100 dark:bg-gray-700 rounded text-sm group relative">
-          <div className="font-medium">{e.title}</div>
-          <div className="text-gray-500 text-xs">{e.company}</div>
-          <div className={`text-xs ${e.type === 'work' ? 'text-blue-500' : 'text-green-500'}`}>
-            {e.type === 'work' ? '💼 Trabajo' : '🎓 Educación'}
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
-            onClick={() => handleDelete(e.id)}
-          >
-            <Trash2 size={14} className="text-red-500" />
-          </Button>
+      </TabsContent>
+      <TabsContent value="experience">
+        <div className="text-xs font-medium mb-2 px-1">Experiencia ({profile.experiences.length}) - Edita directamente en la página</div>
+        <div className="space-y-2 max-h-[30vh] overflow-y-auto">
+          {profile.experiences.map((e) => (<div key={e.id} className="p-2 bg-gray-100 rounded text-sm"><div className="font-medium">{e.title}</div><div className="text-gray-500 text-xs">{e.company}</div></div>))}
         </div>
-      ))}
-      
-      {showAdd ? (
-        <div className="space-y-2 p-2 border rounded">
-          <Input
-            placeholder="Título / Puesto *"
-            value={newExp.title}
-            onChange={(e) => setNewExp({ ...newExp, title: e.target.value })}
-          />
-          <Input
-            placeholder="Empresa / Institución *"
-            value={newExp.company}
-            onChange={(e) => setNewExp({ ...newExp, company: e.target.value })}
-          />
-          <Input
-            placeholder="Ubicación"
-            value={newExp.location}
-            onChange={(e) => setNewExp({ ...newExp, location: e.target.value })}
-          />
-          <div className="flex gap-2">
-            <Input
-              placeholder="Inicio (ej: 2020-01)"
-              value={newExp.startDate}
-              onChange={(e) => setNewExp({ ...newExp, startDate: e.target.value })}
-              className="flex-1"
-            />
-            <Input
-              placeholder="Fin (vacío = actual)"
-              value={newExp.endDate}
-              onChange={(e) => setNewExp({ ...newExp, endDate: e.target.value })}
-              className="flex-1"
-            />
-          </div>
-          <Textarea
-            placeholder="Descripción"
-            value={newExp.description}
-            onChange={(e) => setNewExp({ ...newExp, description: e.target.value })}
-            rows={2}
-          />
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant={newExp.type === 'work' ? 'default' : 'outline'}
-              onClick={() => setNewExp({ ...newExp, type: 'work' })}
-              className="flex-1"
-            >
-              Trabajo
-            </Button>
-            <Button
-              size="sm"
-              variant={newExp.type === 'education' ? 'default' : 'outline'}
-              onClick={() => setNewExp({ ...newExp, type: 'education' })}
-              className="flex-1"
-            >
-              Educación
-            </Button>
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={handleAdd} size="sm">Agregar</Button>
-            <Button variant="ghost" size="sm" onClick={() => setShowAdd(false)}>Cancelar</Button>
-          </div>
+      </TabsContent>
+      <TabsContent value="skills">
+        <div className="text-xs font-medium mb-2 px-1">Habilidades ({profile.skills.length}) - Edita directamente en la página</div>
+        <div className="space-y-2 max-h-[30vh] overflow-y-auto">
+          {profile.skills.map((s) => (<div key={s.id} className="p-2 bg-gray-100 rounded text-sm flex justify-between"><span className="font-medium">{s.name}</span><span className="text-gray-500 text-xs">{s.level}%</span></div>))}
         </div>
-      ) : (
-        <Button onClick={() => setShowAdd(true)} size="sm" className="w-full gap-2">
-          <Plus size={16} />
-          Agregar Experiencia
-        </Button>
-      )}
-    </div>
-  );
-}
-
-function SkillEditor({ skills, addSkill, updateSkill, deleteSkill, primaryColor }: { 
-  skills: any[]; 
-  addSkill: (data: any) => Promise<void>;
-  updateSkill: (id: string, data: any) => Promise<void>;
-  deleteSkill: (id: string) => Promise<void>;
-  primaryColor: string;
-}) {
-  const [showAdd, setShowAdd] = useState(false);
-  const [newSkill, setNewSkill] = useState({
-    name: '',
-    level: 80,
-    category: 'General',
-  });
-
-  const handleAdd = async () => {
-    if (!newSkill.name) return toast.error('El nombre es requerido');
-    await addSkill({
-      ...newSkill,
-      order: skills.length,
-    });
-    setNewSkill({ name: '', level: 80, category: 'General' });
-    setShowAdd(false);
-    toast.success('Habilidad agregada');
-  };
-
-  const handleDelete = async (id: string) => {
-    if (confirm('¿Estás seguro de eliminar esta habilidad?')) {
-      await deleteSkill(id);
-      toast.success('Habilidad eliminada');
-    }
-  };
-
-  const categories = ['General', 'Frontend', 'Backend', 'DevOps', 'Herramientas', 'Database', 'Mobile', 'Design'];
-
-  return (
-    <div className="space-y-3">
-      {skills.map((s) => (
-        <div key={s.id} className="p-2 bg-gray-100 dark:bg-gray-700 rounded text-sm flex justify-between items-center group relative">
-          <div className="flex-1">
-            <span className="font-medium">{s.name}</span>
-            <span className="text-xs text-gray-500 ml-2">{s.category}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-gray-500">{s.level}%</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
-              onClick={() => handleDelete(s.id)}
-            >
-              <Trash2 size={14} className="text-red-500" />
-            </Button>
-          </div>
-        </div>
-      ))}
-      
-      {showAdd ? (
-        <div className="space-y-2 p-2 border rounded">
-          <Input
-            placeholder="Nombre de la habilidad *"
-            value={newSkill.name}
-            onChange={(e) => setNewSkill({ ...newSkill, name: e.target.value })}
-          />
-          <div>
-            <Label className="text-xs">Nivel: {newSkill.level}%</Label>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={newSkill.level}
-              onChange={(e) => setNewSkill({ ...newSkill, level: parseInt(e.target.value) })}
-              className="w-full"
-              style={{ accentColor: primaryColor }}
-            />
-          </div>
-          <div>
-            <Label className="text-xs">Categoría</Label>
-            <select
-              value={newSkill.category}
-              onChange={(e) => setNewSkill({ ...newSkill, category: e.target.value })}
-              className="w-full p-2 border rounded text-sm"
-            >
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={handleAdd} size="sm">Agregar</Button>
-            <Button variant="ghost" size="sm" onClick={() => setShowAdd(false)}>Cancelar</Button>
-          </div>
-        </div>
-      ) : (
-        <Button onClick={() => setShowAdd(true)} size="sm" className="w-full gap-2">
-          <Plus size={16} />
-          Agregar Habilidad
-        </Button>
-      )}
-    </div>
+      </TabsContent>
+    </Tabs>
   );
 }
