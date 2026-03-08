@@ -19,7 +19,7 @@ const iconMap: { [key: string]: typeof Linkedin } = {
 };
 
 export default function Hero({ onEditPhoto }: { onEditPhoto?: () => void }) {
-  const { profile, updateProfile } = useData();
+  const { profile } = useData();
   const { isAuthenticated } = useAuth();
   const [editingField, setEditingField] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -32,7 +32,12 @@ export default function Hero({ onEditPhoto }: { onEditPhoto?: () => void }) {
       const reader = new FileReader();
       reader.onload = async (e) => {
         const base64 = e.target?.result as string;
-        await updateProfile({ photo: base64 });
+        await fetch('/api/portfolio', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ photo: base64 }),
+        });
+        window.location.reload();
       };
       reader.readAsDataURL(file);
     }
