@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   keywords: ["Portafolio", "CV", "Curriculum", "Desarrollador", "Full Stack", "React", "Next.js"],
   authors: [{ name: "Mi Nombre" }],
   icons: {
-    icon: "/logo.png",
+    icon: "/logo.ico",
   },
 };
 
