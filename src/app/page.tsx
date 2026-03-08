@@ -838,39 +838,59 @@ function EditorPanel({ profile, updateProfile, onClose }: any) {
   const currentSocialLinks = Object.keys(socialLinks).length > 0 ? socialLinks : initialSocialLinks;
 
   const [tab, setTab] = useState('profile');
+  const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
-    // Guardar datos del perfil
-    await updateProfile(currentData);
-    
-    // Guardar redes sociales
-    const socialLinksArray = Object.entries(currentSocialLinks)
-      .filter(([_, url]) => url && url.trim() !== '')
-      .map(([icon, url], index) => ({
-        platform: socialPlatforms.find(p => p.id === icon)?.name || icon,
-        url,
-        icon,
-        order: index
-      }));
-    
-    // Actualizar redes sociales via API
+    setSaving(true);
     try {
+      // Guardar datos del perfil
+      await updateProfile(currentData);
+      
+      // Guardar redes sociales
+      const socialLinksArray = Object.entries(currentSocialLinks)
+        .filter(([_, url]) => url && url.trim() !== '')
+        .map(([icon, url], index) => ({
+          platform: socialPlatforms.find(p => p.id === icon)?.name || icon,
+          url: url.trim(),
+          icon,
+          order: index
+        }));
+      
+      // Actualizar redes sociales via API
       // Primero eliminar todas las redes sociales existentes
-      for (const link of (profile?.socialLinks || [])) {
-        await fetch(`/api/portfolio/social?id=${link.id}`, { method: 'DELETE' });
+      if (profile?.socialLinks && profile.socialLinks.length > 0) {
+        for (const link of profile.socialLinks) {
+          try {
+            await fetch(`/api/portfolio/social?id=${link.id}`, { method: 'DELETE' });
+          } catch (e) {
+            console.log('Error deleting link:', e);
+          }
+        }
       }
+      
       // Luego crear las nuevas
       for (const link of socialLinksArray) {
-        await fetch('/api/portfolio/social', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(link)
-        });
+        try {
+          const res = await fetch('/api/portfolio/social', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(link)
+          });
+          if (!res.ok) {
+            console.error('Error creating social link:', await res.text());
+          }
+        } catch (e) {
+          console.error('Error creating link:', e);
+        }
       }
+      
       toast.success('✅ Cambios guardados');
-      window.location.reload();
+      setTimeout(() => window.location.reload(), 500);
     } catch (error) {
-      toast.error('Error al guardar redes sociales');
+      console.error('Error saving:', error);
+      toast.error('Error al guardar');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -955,8 +975,8 @@ function EditorPanel({ profile, updateProfile, onClose }: any) {
       </Tabs>
       
       <div className="p-4 border-t bg-gray-50">
-        <Button onClick={handleSave} className="w-full gap-2" style={{ backgroundColor: profile.primaryColor, color: 'white' }}>
-          <Save size={16} /> Guardar Todos los Cambios
+        <Button onClick={handleSave} disabled={saving} className="w-full gap-2" style={{ backgroundColor: profile.primaryColor, color: 'white' }}>
+          {saving ? '⏳ Guardando...' : '💾 Guardar Todos los Cambios'}
         </Button>
       </div>
     </motion.div>
