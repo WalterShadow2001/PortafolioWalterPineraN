@@ -14,7 +14,7 @@ export function getDb(): PrismaClient {
     const dbAuthToken = process.env.DATABASE_AUTH_TOKEN
 
     if (!dbUrl) {
-      throw new Error('DATABASE_URL environment variable is not set')
+      throw new Error('DATABASE_URL environment variable is not set. Available env keys: ' + Object.keys(process.env).filter(k => !k.startsWith('_')).join(', '))
     }
     if (!dbAuthToken) {
       throw new Error('DATABASE_AUTH_TOKEN environment variable is not set')
@@ -33,11 +33,8 @@ export function getDb(): PrismaClient {
 
     const adapter = new PrismaLibSql(libsql)
 
-    // When using an adapter, Prisma 7 still validates the datasource URL internally
-    // We pass the actual DATABASE_URL here to satisfy that validation
     _prisma = new PrismaClient({
       adapter,
-      datasourceUrl: dbUrl,
     })
 
     if (process.env.NODE_ENV !== 'production') {
