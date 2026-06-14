@@ -1457,8 +1457,10 @@ function PDFExportDialog({ open, onOpenChange, profile }: any) {
           </div>
           <div>
             <h3 className="font-semibold mb-2 text-sm">Vista Previa</h3>
-            <div className="border rounded-lg overflow-hidden bg-white shadow-inner" style={{ transform: 'scale(0.55)', transformOrigin: 'top left', width: '182%', height: '550px' }}>
-              <div dangerouslySetInnerHTML={{ __html: `<style>${getStyles(selectedTemplate, profile)}</style>${generateCVContent(profile, selectedTemplate, sections)}` }} />
+            <div className="border rounded-lg overflow-hidden bg-white shadow-inner" style={{ height: '500px' }}>
+              <div style={{ transform: 'scale(0.45)', transformOrigin: 'top left', width: '222%', height: '1111px', overflow: 'hidden' }}>
+                <div dangerouslySetInnerHTML={{ __html: `<style>${getStyles(selectedTemplate, profile)}.cv-container{max-height:11in;overflow:hidden}</style>${generateCVContent(profile, selectedTemplate, sections)}` }} />
+              </div>
             </div>
           </div>
         </div>
@@ -1468,8 +1470,8 @@ function PDFExportDialog({ open, onOpenChange, profile }: any) {
 }
 
 function generateCVHTML(profile: any, template: string, sections: any): string {
-  const autoFitScript = `<script>window.addEventListener('DOMContentLoaded',function(){setTimeout(function(){var cv=document.querySelector('.cv-container');if(!cv)return;var maxH=1056;var h=cv.scrollHeight;if(h>maxH){document.body.style.zoom=(maxH/h).toFixed(4)}},300)})</script>`;
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>CV - ${profile.name}</title><style>${getStyles(template, profile)}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:letter;margin:0}}</style></head><body>${generateCVContent(profile, template, sections)}${autoFitScript}</body></html>`;
+  const autoFitScript = `<script>(function(){function fit(){var cv=document.querySelector('.cv-container');if(!cv)return;var maxH=1056;var h=cv.scrollHeight;var w=cv.scrollWidth;var maxW=816;if(h>maxH||w>maxW){var sH=maxH/h;var sW=maxW/w;var s=Math.min(sH,sW)*0.98;cv.style.transform='scale('+s.toFixed(4)+')';cv.style.transformOrigin='top left';cv.style.width=(100/s).toFixed(2)+'%';document.body.style.height=(h*s)+'px';document.body.style.overflow='hidden'}}window.addEventListener('DOMContentLoaded',function(){setTimeout(fit,100);setTimeout(fit,500)});window.addEventListener('load',function(){setTimeout(fit,200)})})()</script>`;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>CV - ${profile.name}</title><style>${getStyles(template, profile)}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:letter;margin:0}.cv-container{transform:none!important;width:8.5in!important;height:auto!important}}</style></head><body>${generateCVContent(profile, template, sections)}${autoFitScript}</body></html>`;
 }
 
 function getPhotoStyles(profile: any, size: number = 60, inline: boolean = false): string {
@@ -1492,7 +1494,7 @@ function getStyles(template: string, profile: any): string {
   const pc = profile.primaryColor || '#2563eb';
   const sc = profile.secondaryColor || '#60a5fa';
   const ac = profile.accentColor || '#f59e0b';
-  const base = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;font-size:8.5pt;line-height:1.3;color:#2d2d2d;background:#fff}`;
+  const base = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;font-size:8pt;line-height:1.25;color:#2d2d2d;background:#fff;overflow:hidden}`;
 
   switch(template) {
     case 'modern':
