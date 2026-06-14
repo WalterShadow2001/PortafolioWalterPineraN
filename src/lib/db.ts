@@ -16,10 +16,13 @@ function createPrismaClient() {
 
   return new PrismaClient({
     adapter,
-    log: process.env.NODE_ENV === 'development' ? ['query'] : [],
   })
 }
 
-export const db = globalForPrisma.prisma ?? createPrismaClient()
+// Only create the client if we have the required env vars
+// During build time, env vars may not be available
+export const db = globalForPrisma.prisma ?? (
+  process.env.DATABASE_URL ? createPrismaClient() : (undefined as unknown as PrismaClient)
+)
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db
+if (process.env.NODE_ENV !== 'production' && process.env.DATABASE_URL) globalForPrisma.prisma = db
