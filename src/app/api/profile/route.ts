@@ -1,11 +1,11 @@
 export const dynamic = 'force-dynamic';
-import { db } from '@/lib/db';
+import { getDb } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 
 // GET - Fetch profile
 export async function GET() {
   try {
-    const profile = await db.profile.findFirst();
+    const profile = await getDb().profile.findFirst();
     return NextResponse.json(profile);
   } catch (error) {
     console.error('Error fetching profile:', error);
@@ -17,10 +17,10 @@ export async function GET() {
 export async function PUT(request: NextRequest) {
   try {
     const data = await request.json();
-    const existingProfile = await db.profile.findFirst();
+    const existingProfile = await getDb().profile.findFirst();
 
     if (existingProfile) {
-      const profile = await db.profile.update({
+      const profile = await getDb().profile.update({
         where: { id: existingProfile.id },
         data: {
           name: data.name,
@@ -42,7 +42,7 @@ export async function PUT(request: NextRequest) {
       });
       return NextResponse.json(profile);
     } else {
-      const profile = await db.profile.create({
+      const profile = await getDb().profile.create({
         data: {
           name: data.name || '',
           title: data.title || '',

@@ -1,11 +1,11 @@
 export const dynamic = 'force-dynamic';
-import { db } from '@/lib/db';
+import { getDb } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 
 // GET - Fetch all projects
 export async function GET() {
   try {
-    const projects = await db.project.findMany({
+    const projects = await getDb().project.findMany({
       orderBy: { order: 'asc' },
     });
     return NextResponse.json(projects);
@@ -21,12 +21,12 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
     
     // Get max order
-    const maxOrder = await db.project.aggregate({
+    const maxOrder = await getDb().project.aggregate({
       _max: { order: true },
     });
     const nextOrder = (maxOrder._max.order || 0) + 1;
 
-    const project = await db.project.create({
+    const project = await getDb().project.create({
       data: {
         title: data.title,
         description: data.description,
@@ -49,7 +49,7 @@ export async function PUT(request: NextRequest) {
   try {
     const data = await request.json();
     
-    const project = await db.project.update({
+    const project = await getDb().project.update({
       where: { id: data.id },
       data: {
         title: data.title,
@@ -78,7 +78,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Project ID required' }, { status: 400 });
     }
 
-    await db.project.delete({
+    await getDb().project.delete({
       where: { id },
     });
     return NextResponse.json({ success: true });

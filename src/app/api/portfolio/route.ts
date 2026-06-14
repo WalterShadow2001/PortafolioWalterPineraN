@@ -1,13 +1,12 @@
 export const dynamic = 'force-dynamic';
+import { getDb } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
 
 // GET - Obtener todos los datos del portafolio
 export async function GET() {
   try {
-    let profile = await prisma.profile.findFirst({
+    let profile = await getDb().profile.findFirst({
       include: {
         socialLinks: true,
         projects: { orderBy: { order: 'asc' } },
@@ -19,7 +18,7 @@ export async function GET() {
 
     // Si no existe perfil, crear uno por defecto con datos de ejemplo
     if (!profile) {
-      profile = await prisma.profile.create({
+      profile = await getDb().profile.create({
         data: {
           name: 'Juan Pérez',
           title: 'Desarrollador Full Stack',
@@ -144,10 +143,10 @@ export async function PUT(request: NextRequest) {
     const data = await request.json();
     const { socialLinks, projects, certificates, experiences, skills, ...profileData } = data;
 
-    let profile = await prisma.profile.findFirst();
+    let profile = await getDb().profile.findFirst();
 
     if (!profile) {
-      profile = await prisma.profile.create({
+      profile = await getDb().profile.create({
         data: {
           ...profileData,
           name: profileData.name || 'Mi Nombre',
@@ -156,7 +155,7 @@ export async function PUT(request: NextRequest) {
       });
     } else {
       // Actualizar perfil
-      profile = await prisma.profile.update({
+      profile = await getDb().profile.update({
         where: { id: profile.id },
         data: {
           ...profileData,
@@ -167,9 +166,9 @@ export async function PUT(request: NextRequest) {
 
     // Actualizar social links si se proporcionan
     if (socialLinks) {
-      await prisma.socialLink.deleteMany({ where: { profileId: profile.id } });
+      await getDb().socialLink.deleteMany({ where: { profileId: profile.id } });
       if (socialLinks.length > 0) {
-        await prisma.socialLink.createMany({
+        await getDb().socialLink.createMany({
           data: socialLinks.map((link: { platform: string; url: string; icon: string }) => ({
             ...link,
             profileId: profile.id,

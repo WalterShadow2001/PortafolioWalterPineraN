@@ -1,14 +1,13 @@
 export const dynamic = 'force-dynamic';
+import { getDb } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
 
 export async function GET() {
   try {
-    const profile = await prisma.profile.findFirst();
+    const profile = await getDb().profile.findFirst();
     if (!profile) return NextResponse.json([]);
-    const projects = await prisma.project.findMany({
+    const projects = await getDb().project.findMany({
       where: { profileId: profile.id },
       orderBy: { order: 'asc' },
     });
@@ -21,10 +20,10 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
-    const profile = await prisma.profile.findFirst();
+    const profile = await getDb().profile.findFirst();
     if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
 
-    const project = await prisma.project.create({
+    const project = await getDb().project.create({
       data: { ...data, profileId: profile.id },
     });
     return NextResponse.json(project);
@@ -37,7 +36,7 @@ export async function PUT(request: NextRequest) {
   try {
     const data = await request.json();
     const { id, ...updateData } = data;
-    const project = await prisma.project.update({
+    const project = await getDb().project.update({
       where: { id },
       data: updateData,
     });
@@ -52,7 +51,7 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
-    await prisma.project.delete({ where: { id } });
+    await getDb().project.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Error deleting project' }, { status: 500 });

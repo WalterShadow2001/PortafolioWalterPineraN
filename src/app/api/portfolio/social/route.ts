@@ -1,14 +1,13 @@
 export const dynamic = 'force-dynamic';
+import { getDb } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
 
 export async function GET() {
   try {
-    const profile = await prisma.profile.findFirst();
+    const profile = await getDb().profile.findFirst();
     if (!profile) return NextResponse.json([]);
-    const socialLinks = await prisma.socialLink.findMany({
+    const socialLinks = await getDb().socialLink.findMany({
       where: { profileId: profile.id },
     });
     return NextResponse.json(socialLinks);
@@ -20,10 +19,10 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
-    const profile = await prisma.profile.findFirst();
+    const profile = await getDb().profile.findFirst();
     if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
 
-    const socialLink = await prisma.socialLink.create({
+    const socialLink = await getDb().socialLink.create({
       data: { ...data, profileId: profile.id },
     });
     return NextResponse.json(socialLink);
@@ -36,7 +35,7 @@ export async function PUT(request: NextRequest) {
   try {
     const data = await request.json();
     const { id, ...updateData } = data;
-    const socialLink = await prisma.socialLink.update({
+    const socialLink = await getDb().socialLink.update({
       where: { id },
       data: updateData,
     });
@@ -51,7 +50,7 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
-    await prisma.socialLink.delete({ where: { id } });
+    await getDb().socialLink.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Error deleting social link' }, { status: 500 });

@@ -1,18 +1,18 @@
 export const dynamic = 'force-dynamic';
-import { db } from '@/lib/db';
+import { getDb } from '@/lib/db';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
     // Check if profile already exists
-    const existingProfile = await db.profile.findFirst();
+    const existingProfile = await getDb().profile.findFirst();
     
     if (existingProfile) {
       return NextResponse.json({ message: 'Database already seeded', profile: existingProfile });
     }
 
     // Create default profile
-    const profile = await db.profile.create({
+    const profile = await getDb().profile.create({
       data: {
         name: 'Juan García',
         title: 'Desarrollador Full Stack',
@@ -32,7 +32,7 @@ export async function GET() {
     });
 
     // Create sample projects
-    await db.project.createMany({
+    await getDb().project.createMany({
       data: [
         {
           title: 'E-Commerce Platform',
@@ -62,7 +62,7 @@ export async function GET() {
     });
 
     // Create sample experience
-    await db.experience.createMany({
+    await getDb().experience.createMany({
       data: [
         {
           title: 'Senior Full Stack Developer',
@@ -98,7 +98,7 @@ export async function GET() {
     });
 
     // Create sample skills
-    await db.skill.createMany({
+    await getDb().skill.createMany({
       data: [
         { name: 'React', level: 95, icon: 'code', category: 'Frontend', order: 1 },
         { name: 'TypeScript', level: 90, icon: 'file-code', category: 'Frontend', order: 2 },
@@ -112,7 +112,7 @@ export async function GET() {
     });
 
     // Create sample certificates
-    await db.certificate.createMany({
+    await getDb().certificate.createMany({
       data: [
         {
           title: 'AWS Certified Developer',
@@ -139,7 +139,7 @@ export async function GET() {
     });
 
     // Create sample social links
-    await db.socialLink.createMany({
+    await getDb().socialLink.createMany({
       data: [
         { platform: 'LinkedIn', url: 'https://linkedin.com/in/juangarcia', icon: 'linkedin', order: 1 },
         { platform: 'GitHub', url: 'https://github.com/juangarcia', icon: 'github', order: 2 },

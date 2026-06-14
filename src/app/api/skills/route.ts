@@ -1,11 +1,11 @@
 export const dynamic = 'force-dynamic';
-import { db } from '@/lib/db';
+import { getDb } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 
 // GET - Fetch all skills
 export async function GET() {
   try {
-    const skills = await db.skill.findMany({
+    const skills = await getDb().skill.findMany({
       orderBy: { order: 'asc' },
     });
     return NextResponse.json(skills);
@@ -21,12 +21,12 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
     
     // Get max order
-    const maxOrder = await db.skill.aggregate({
+    const maxOrder = await getDb().skill.aggregate({
       _max: { order: true },
     });
     const nextOrder = (maxOrder._max.order || 0) + 1;
 
-    const skill = await db.skill.create({
+    const skill = await getDb().skill.create({
       data: {
         name: data.name,
         level: data.level || 50,
@@ -47,7 +47,7 @@ export async function PUT(request: NextRequest) {
   try {
     const data = await request.json();
     
-    const skill = await db.skill.update({
+    const skill = await getDb().skill.update({
       where: { id: data.id },
       data: {
         name: data.name,
@@ -74,7 +74,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Skill ID required' }, { status: 400 });
     }
 
-    await db.skill.delete({
+    await getDb().skill.delete({
       where: { id },
     });
     return NextResponse.json({ success: true });
@@ -92,7 +92,7 @@ export async function PATCH(request: NextRequest) {
     
     // Update each skill order
     for (const item of orders) {
-      await db.skill.update({
+      await getDb().skill.update({
         where: { id: item.id },
         data: { order: item.order },
       });

@@ -1,11 +1,11 @@
 export const dynamic = 'force-dynamic';
-import { db } from '@/lib/db';
+import { getDb } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 
 // GET - Fetch all experience
 export async function GET() {
   try {
-    const experience = await db.experience.findMany({
+    const experience = await getDb().experience.findMany({
       orderBy: { order: 'asc' },
     });
     return NextResponse.json(experience);
@@ -21,12 +21,12 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
     
     // Get max order
-    const maxOrder = await db.experience.aggregate({
+    const maxOrder = await getDb().experience.aggregate({
       _max: { order: true },
     });
     const nextOrder = (maxOrder._max.order || 0) + 1;
 
-    const experience = await db.experience.create({
+    const experience = await getDb().experience.create({
       data: {
         title: data.title,
         company: data.company,
@@ -50,7 +50,7 @@ export async function PUT(request: NextRequest) {
   try {
     const data = await request.json();
     
-    const experience = await db.experience.update({
+    const experience = await getDb().experience.update({
       where: { id: data.id },
       data: {
         title: data.title,
@@ -80,7 +80,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Experience ID required' }, { status: 400 });
     }
 
-    await db.experience.delete({
+    await getDb().experience.delete({
       where: { id },
     });
     return NextResponse.json({ success: true });
@@ -98,7 +98,7 @@ export async function PATCH(request: NextRequest) {
     
     // Update each experience order
     for (const item of orders) {
-      await db.experience.update({
+      await getDb().experience.update({
         where: { id: item.id },
         data: { order: item.order },
       });

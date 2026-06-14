@@ -1,11 +1,11 @@
 export const dynamic = 'force-dynamic';
-import { db } from '@/lib/db';
+import { getDb } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 
 // GET - Fetch all social links
 export async function GET() {
   try {
-    const socialLinks = await db.socialLink.findMany({
+    const socialLinks = await getDb().socialLink.findMany({
       orderBy: { order: 'asc' },
     });
     return NextResponse.json(socialLinks);
@@ -21,12 +21,12 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
     
     // Get max order
-    const maxOrder = await db.socialLink.aggregate({
+    const maxOrder = await getDb().socialLink.aggregate({
       _max: { order: true },
     });
     const nextOrder = (maxOrder._max.order || 0) + 1;
 
-    const socialLink = await db.socialLink.create({
+    const socialLink = await getDb().socialLink.create({
       data: {
         platform: data.platform,
         url: data.url,
@@ -46,7 +46,7 @@ export async function PUT(request: NextRequest) {
   try {
     const data = await request.json();
     
-    const socialLink = await db.socialLink.update({
+    const socialLink = await getDb().socialLink.update({
       where: { id: data.id },
       data: {
         platform: data.platform,
@@ -72,7 +72,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Social link ID required' }, { status: 400 });
     }
 
-    await db.socialLink.delete({
+    await getDb().socialLink.delete({
       where: { id },
     });
     return NextResponse.json({ success: true });

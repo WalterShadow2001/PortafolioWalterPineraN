@@ -1,11 +1,11 @@
 export const dynamic = 'force-dynamic';
-import { db } from '@/lib/db';
+import { getDb } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 
 // GET - Fetch all certificates
 export async function GET() {
   try {
-    const certificates = await db.certificate.findMany({
+    const certificates = await getDb().certificate.findMany({
       orderBy: { order: 'asc' },
     });
     return NextResponse.json(certificates);
@@ -21,12 +21,12 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
     
     // Get max order
-    const maxOrder = await db.certificate.aggregate({
+    const maxOrder = await getDb().certificate.aggregate({
       _max: { order: true },
     });
     const nextOrder = (maxOrder._max.order || 0) + 1;
 
-    const certificate = await db.certificate.create({
+    const certificate = await getDb().certificate.create({
       data: {
         title: data.title,
         institution: data.institution,
@@ -49,7 +49,7 @@ export async function PUT(request: NextRequest) {
   try {
     const data = await request.json();
     
-    const certificate = await db.certificate.update({
+    const certificate = await getDb().certificate.update({
       where: { id: data.id },
       data: {
         title: data.title,
@@ -78,7 +78,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Certificate ID required' }, { status: 400 });
     }
 
-    await db.certificate.delete({
+    await getDb().certificate.delete({
       where: { id },
     });
     return NextResponse.json({ success: true });
