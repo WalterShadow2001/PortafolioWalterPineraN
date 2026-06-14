@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { AuthProvider, useAuth } from '@/lib/contexts/auth-context';
 import { DataProvider, useData } from '@/lib/contexts/data-context';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -19,6 +19,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+import { EyeToggle } from '@/components/ui/eye-toggle';
 
 // Icon map - todas las redes sociales disponibles
 const socialIconMap: { [key: string]: typeof Linkedin } = {
@@ -62,6 +63,7 @@ function PortfolioApp() {
   const { isAuthenticated, login, logout, checking } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
   const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
   const [showPdfDialog, setShowPdfDialog] = useState(false);
@@ -252,8 +254,24 @@ function PortfolioApp() {
                   <div className="space-y-4 pt-4">
                     <div>
                       <Label>Contraseña</Label>
-                      <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleLogin()} placeholder="Ingresa la contraseña" className="mt-2" />
+                      <div className="relative mt-2 flex items-center">
+                        <Input
+                          type={showPassword ? 'text' : 'password'}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                          placeholder="Ingresa la contraseña"
+                          className="pr-14"
+                        />
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                          <EyeToggle
+                            show={showPassword}
+                            onToggle={() => setShowPassword(!showPassword)}
+                            size={38}
+                            primaryColor={profile.primaryColor}
+                          />
+                        </div>
+                      </div>
                     </div>
                     <Button onClick={handleLogin} disabled={loginLoading} className="w-full" style={{ backgroundColor: profile.primaryColor, color: 'white' }}>
                       {loginLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
