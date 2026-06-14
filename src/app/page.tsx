@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { AuthProvider, useAuth } from '@/lib/contexts/auth-context';
 import { DataProvider, useData } from '@/lib/contexts/data-context';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -826,11 +827,70 @@ function PortfolioApp() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-8 text-center text-sm border-t" style={{ borderColor: `${profile.primaryColor}20` }}>
-        <p style={{ color: profile.textColor, opacity: 0.6 }}>
-          © {new Date().getFullYear()} {profile.name}. Todos los derechos reservados.
-        </p>
+      {/* Footer with QR Code */}
+      <footer className="relative overflow-hidden" style={{ borderColor: `${profile.primaryColor}20` }}>
+        {/* Decorative gradient top border */}
+        <div className="h-1" style={{ background: `linear-gradient(90deg, transparent, ${profile.primaryColor}, ${profile.secondaryColor || '#60a5fa'}, ${profile.primaryColor}, transparent)` }} />
+        
+        <div className="py-12 px-4">
+          <div className="max-w-4xl mx-auto">
+            {/* QR Code Section */}
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }} 
+              whileInView={{ opacity: 1, y: 0 }} 
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="flex flex-col items-center mb-8"
+            >
+              <div className="relative group">
+                {/* Glow effect */}
+                <div className="absolute -inset-4 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl" 
+                  style={{ background: `linear-gradient(135deg, ${profile.primaryColor}30, ${profile.secondaryColor || '#60a5fa'}30)` }} />
+                
+                {/* QR Card */}
+                <div className="relative p-6 rounded-2xl border transition-all duration-300 group-hover:shadow-xl group-hover:-translate-y-1"
+                  style={{ 
+                    background: `linear-gradient(145deg, ${profile.primaryColor}08, ${profile.secondaryColor || '#60a5fa'}05)`,
+                    borderColor: `${profile.primaryColor}25`,
+                  }}>
+                  {/* QR Code */}
+                  <div className="p-3 bg-white rounded-xl shadow-inner">
+                    <QRCodeSVG 
+                      value={typeof window !== 'undefined' ? window.location.origin : `https://portafolio-walter-pineran.vercel.app`}
+                      size={140}
+                      bgColor="#ffffff"
+                      fgColor={profile.primaryColor}
+                      level="H"
+                      includeMargin={false}
+                    />
+                  </div>
+                  
+                  {/* Scan label */}
+                  <div className="mt-3 text-center">
+                    <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: profile.primaryColor }}>
+                      Escanea para visitar
+                    </p>
+                    <p className="text-[10px] mt-1 font-mono" style={{ color: profile.textColor, opacity: 0.4 }}>
+                      {typeof window !== 'undefined' ? window.location.host : 'portafolio-walter-pineran.vercel.app'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Divider */}
+            <div className="flex items-center gap-4 mb-6">
+              <div className="flex-1 h-px" style={{ background: `linear-gradient(to right, transparent, ${profile.primaryColor}30)` }} />
+              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: profile.primaryColor }} />
+              <div className="flex-1 h-px" style={{ background: `linear-gradient(to left, transparent, ${profile.primaryColor}30)` }} />
+            </div>
+
+            {/* Copyright */}
+            <p className="text-center text-sm" style={{ color: profile.textColor, opacity: 0.5 }}>
+              © {new Date().getFullYear()} {profile.name}. Todos los derechos reservados.
+            </p>
+          </div>
+        </div>
       </footer>
 
       {/* Editor Panel */}
