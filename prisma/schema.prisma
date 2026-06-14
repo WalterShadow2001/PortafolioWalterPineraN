@@ -1,21 +1,16 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("POSTGRES_PRISMA_URL")
-  directUrl = env("POSTGRES_URL")
+  provider = "sqlite"
 }
 
 model Profile {
   id              String   @id @default(cuid())
   name            String   @default("Tu Nombre")
   title           String   @default("Desarrollador Full Stack")
-  photo           String?  // base64 image
+  photo           String?
   bio             String?  @default("Apasionado por la tecnología y el desarrollo de software.")
   email           String?  @default("tu@email.com")
   phone           String?  @default("+1 234 567 890")
@@ -38,9 +33,9 @@ model Profile {
 
 model SocialLink {
   id        String   @id @default(cuid())
-  platform  String   // linkedin, github, twitter, instagram, etc.
+  platform  String
   url       String
-  icon      String   // lucide icon name
+  icon      String
   profileId String
   profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
@@ -48,20 +43,20 @@ model SocialLink {
 }
 
 model Project {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  url         String?
-  technologies String? // comma separated
-  images      String?  // JSON array of base64 images
-  startDate   String?
-  endDate     String?
-  featured    Boolean  @default(false)
-  order       Int      @default(0)
-  profileId   String
-  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  url          String?
+  technologies String?
+  images       String?
+  startDate    String?
+  endDate      String?
+  featured     Boolean  @default(false)
+  order        Int      @default(0)
+  profileId    String
+  profile      Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model Certificate {
@@ -69,8 +64,8 @@ model Certificate {
   title       String
   institution String?
   issueDate   String?
-  fileData    String?  // base64 file (PDF or image)
-  fileType    String?  // pdf, png, jpg, webp
+  fileData    String?
+  fileType    String?
   description String?
   order       Int      @default(0)
   profileId   String
@@ -81,13 +76,13 @@ model Certificate {
 
 model Experience {
   id          String   @id @default(cuid())
-  title       String   // Job title or degree
-  company     String   // Company or school name
+  title       String
+  company     String
   location    String?
   startDate   String
-  endDate     String?  // null if current
+  endDate     String?
   description String?
-  type        String   @default("work") // work, education
+  type        String   @default("work")
   order       Int      @default(0)
   profileId   String
   profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
@@ -96,14 +91,14 @@ model Experience {
 }
 
 model Skill {
-  id          String   @id @default(cuid())
-  name        String
-  level       Int      @default(80) // 0-100
-  icon        String?  // lucide icon name
-  category    String   @default("General") // Frontend, Backend, Tools, etc.
-  order       Int      @default(0)
-  profileId   String
-  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id       String   @id @default(cuid())
+  name     String
+  level    Int      @default(80)
+  icon     String?
+  category String   @default("General")
+  order    Int      @default(0)
+  profileId String
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
