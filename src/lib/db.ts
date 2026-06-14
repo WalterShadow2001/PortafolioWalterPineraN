@@ -10,14 +10,15 @@ let _prisma: PrismaClient | undefined = undefined
 
 export function getDb(): PrismaClient {
   if (!_prisma) {
-    const dbUrl = process.env.DATABASE_URL
-    const dbAuthToken = process.env.DATABASE_AUTH_TOKEN
+    // Turso connection details
+    const tursoUrl = process.env.TURSO_URL
+    const tursoAuthToken = process.env.TURSO_AUTH_TOKEN
 
-    if (!dbUrl) {
-      throw new Error('DATABASE_URL environment variable is not set. Available env keys: ' + Object.keys(process.env).filter(k => !k.startsWith('_')).join(', '))
+    if (!tursoUrl) {
+      throw new Error('TURSO_URL environment variable is not set')
     }
-    if (!dbAuthToken) {
-      throw new Error('DATABASE_AUTH_TOKEN environment variable is not set')
+    if (!tursoAuthToken) {
+      throw new Error('TURSO_AUTH_TOKEN environment variable is not set')
     }
 
     // These are imported dynamically to prevent build-time evaluation
@@ -27,12 +28,15 @@ export function getDb(): PrismaClient {
     const { createClient } = require('@libsql/client')
 
     const libsql = createClient({
-      url: dbUrl,
-      authToken: dbAuthToken,
+      url: tursoUrl,
+      authToken: tursoAuthToken,
     })
 
     const adapter = new PrismaLibSql(libsql)
 
+    // When using an adapter, Prisma 7 still reads DATABASE_URL from env for internal
+    // validation. Setting DATABASE_URL to a valid SQLite URL satisfies this check.
+    // The actual database connection is handled by the adapter.
     _prisma = new PrismaClient({
       adapter,
     })
