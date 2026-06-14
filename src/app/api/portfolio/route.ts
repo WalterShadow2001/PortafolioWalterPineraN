@@ -131,11 +131,9 @@ export async function GET() {
     }
 
     return NextResponse.json(profile);
-  } catch (error: unknown) {
+  } catch (error) {
     console.error('Error fetching portfolio:', error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    const stack = error instanceof Error ? error.stack : undefined;
-    return NextResponse.json({ error: 'Error fetching portfolio', details: message, stack }, { status: 500 });
+    return NextResponse.json({ error: 'Error fetching portfolio' }, { status: 500 });
   }
 }
 

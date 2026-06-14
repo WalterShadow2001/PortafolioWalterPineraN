@@ -4,13 +4,10 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-// For Turso/libSQL, we use the Prisma libSQL adapter
-// We need to defer the actual client creation to avoid build-time evaluation
 let _prisma: PrismaClient | undefined = undefined
 
 export function getDb(): PrismaClient {
   if (!_prisma) {
-    // Turso connection details
     const tursoUrl = process.env.TURSO_URL
     const tursoAuthToken = process.env.TURSO_AUTH_TOKEN
 
@@ -21,22 +18,15 @@ export function getDb(): PrismaClient {
       throw new Error('TURSO_AUTH_TOKEN environment variable is not set')
     }
 
-    // These are imported dynamically to prevent build-time evaluation
+    // In Prisma v6, PrismaLibSQL accepts a config object (not a pre-created client)
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { PrismaLibSql } = require('@prisma/adapter-libsql')
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { createClient } = require('@libsql/client')
+    const { PrismaLibSQL } = require('@prisma/adapter-libsql')
 
-    const libsql = createClient({
+    const adapter = new PrismaLibSQL({
       url: tursoUrl,
       authToken: tursoAuthToken,
     })
 
-    const adapter = new PrismaLibSql(libsql)
-
-    // When using an adapter, Prisma 7 still reads DATABASE_URL from env for internal
-    // validation. Setting DATABASE_URL to a valid SQLite URL satisfies this check.
-    // The actual database connection is handled by the adapter.
     _prisma = new PrismaClient({
       adapter,
     })
