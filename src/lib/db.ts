@@ -33,8 +33,11 @@ export function getDb(): PrismaClient {
 
     const adapter = new PrismaLibSql(libsql)
 
+    // When using an adapter, Prisma 7 still validates the datasource URL internally
+    // We pass the actual DATABASE_URL here to satisfy that validation
     _prisma = new PrismaClient({
       adapter,
+      datasourceUrl: dbUrl,
     })
 
     if (process.env.NODE_ENV !== 'production') {
