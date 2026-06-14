@@ -7,3 +7,5 @@ node_modules/
 *.db-journal
 migrate-schema.js
 check-data.js
+.vercel
+.vercel/
