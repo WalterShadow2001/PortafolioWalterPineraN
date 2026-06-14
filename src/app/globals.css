@@ -170,6 +170,31 @@ body {
   justify-content: center;
 }
 
+/* Fix dialog text colors - dialogs are portaled outside theme container */
+[data-radix-portal] [data-slot="dialog-content"] {
+  color: #1f2937;
+}
+[data-radix-portal] [data-slot="dialog-content"] label {
+  color: #374151;
+}
+[data-radix-portal] [data-slot="dialog-content"] input,
+[data-radix-portal] [data-slot="dialog-content"] textarea,
+[data-radix-portal] [data-slot="dialog-content"] select {
+  color: #1f2937;
+}
+[data-radix-portal] [data-slot="dialog-content"] input::placeholder,
+[data-radix-portal] [data-slot="dialog-content"] textarea::placeholder {
+  color: #9ca3af;
+}
+[data-radix-portal] [data-slot="dialog-content"] .text-gray-400,
+[data-radix-portal] [data-slot="dialog-content"] .text-gray-500 {
+  color: #6b7280 !important;
+}
+[data-radix-portal] [data-slot="dialog-content"] p,
+[data-radix-portal] [data-slot="dialog-content"] span:not(.sr-only) {
+  color: inherit;
+}
+
 /* Editor panel */
 .editor-panel {
   position: fixed;
