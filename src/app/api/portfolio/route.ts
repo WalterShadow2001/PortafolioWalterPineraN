@@ -1,9 +1,11 @@
-export const dynamic = 'force-dynamic';
 import { getDb } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyEditor } from '@/lib/auth/verify-editor';
 
+// Revalidate every 60 seconds instead of force-dynamic for better performance
+export const revalidate = 60;
 
-// GET - Obtener todos los datos del portafolio
+// GET - Obtener todos los datos del portafolio (public, no auth needed)
 export async function GET() {
   try {
     let profile = await getDb().profile.findFirst({
@@ -137,8 +139,11 @@ export async function GET() {
   }
 }
 
-// PUT - Actualizar perfil completo
+// PUT - Actualizar perfil completo (requires auth)
 export async function PUT(request: NextRequest) {
+  const authError = await verifyEditor(request);
+  if (authError) return authError;
+
   try {
     const data = await request.json();
     const { socialLinks, projects, certificates, experiences, skills, ...profileData } = data;

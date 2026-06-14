@@ -1,7 +1,8 @@
-export const dynamic = 'force-dynamic';
 import { getDb } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyEditor } from '@/lib/auth/verify-editor';
 
+export const revalidate = 60;
 
 export async function GET() {
   try {
@@ -18,6 +19,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const authError = await verifyEditor(request);
+  if (authError) return authError;
+
   try {
     const data = await request.json();
     const profile = await getDb().profile.findFirst();
@@ -33,6 +37,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+  const authError = await verifyEditor(request);
+  if (authError) return authError;
+
   try {
     const data = await request.json();
     const { id, ...updateData } = data;
@@ -47,6 +54,9 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const authError = await verifyEditor(request);
+  if (authError) return authError;
+
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

@@ -1,6 +1,8 @@
-export const dynamic = 'force-dynamic';
 import { getDb } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyEditor } from '@/lib/auth/verify-editor';
+
+export const revalidate = 60;
 
 // GET - Fetch profile
 export async function GET() {
@@ -13,8 +15,11 @@ export async function GET() {
   }
 }
 
-// PUT - Update profile
+// PUT - Update profile (requires auth)
 export async function PUT(request: NextRequest) {
+  const authError = await verifyEditor(request);
+  if (authError) return authError;
+
   try {
     const data = await request.json();
     const existingProfile = await getDb().profile.findFirst();

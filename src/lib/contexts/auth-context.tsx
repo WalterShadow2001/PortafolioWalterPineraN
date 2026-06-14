@@ -1,82 +1,65 @@
 'use client';
 
-import { createContext, useContext, useState, useSyncExternalStore, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  login: (password: string) => boolean;
-  logout: () => void;
+  login: (password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
+  checking: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const CORRECT_PASSWORD = '2001';
-
-// Empty subscription for useSyncExternalStore
-const emptySubscribe = () => () => {};
-
-function useLocalStorageAuth() {
-  const isClient = useSyncExternalStore(
-    emptySubscribe,
-    () => true,
-    () => false
-  );
-  
-  const getAuthFromStorage = (): boolean => {
-    if (typeof window === 'undefined') return false;
-    return localStorage.getItem('portfolio_auth') === 'true';
-  };
-
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  // Sync with localStorage on mount
-  useSyncExternalStore(
-    (onChange) => {
-      const checkAuth = () => {
-        const stored = localStorage.getItem('portfolio_auth');
-        setIsAuthenticated(stored === 'true');
-      };
-      window.addEventListener('storage', checkAuth);
-      checkAuth();
-      return () => window.removeEventListener('storage', checkAuth);
-    },
-    () => getAuthFromStorage(),
-    () => false
-  );
-
-  // Initialize from localStorage
-  useState(() => {
-    if (isClient) {
-      setIsAuthenticated(getAuthFromStorage());
-    }
-  });
-
-  const login = (password: string): boolean => {
-    if (password === CORRECT_PASSWORD) {
-      setIsAuthenticated(true);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('portfolio_auth', 'true');
-      }
-      return true;
-    }
-    return false;
-  };
-
-  const logout = () => {
-    setIsAuthenticated(false);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('portfolio_auth');
-    }
-  };
-
-  return { isAuthenticated, login, logout };
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const auth = useLocalStorageAuth();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [checking, setChecking] = useState(true);
+
+  // Check if already authenticated via JWT cookie on mount
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const res = await fetch('/api/auth/verify');
+        const data = await res.json();
+        setIsAuthenticated(data.authenticated === true);
+      } catch {
+        setIsAuthenticated(false);
+      } finally {
+        setChecking(false);
+      }
+    }
+    checkAuth();
+  }, []);
+
+  const login = useCallback(async (password: string): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+
+      if (res.ok) {
+        setIsAuthenticated(true);
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const logout = useCallback(async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {
+      // ignore
+    }
+    setIsAuthenticated(false);
+  }, []);
 
   return (
-    <AuthContext.Provider value={auth}>
+    <AuthContext.Provider value={{ isAuthenticated, login, logout, checking }}>
       {children}
     </AuthContext.Provider>
   );

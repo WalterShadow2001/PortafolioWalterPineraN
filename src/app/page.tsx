@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useState } from 'react';
 import { AuthProvider, useAuth } from '@/lib/contexts/auth-context';
 import { DataProvider, useData } from '@/lib/contexts/data-context';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -19,11 +19,6 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-
-// Empty subscription for SSR
-const emptySubscribe = () => () => {};
-const getSnapshot = () => true;
-const getServerSnapshot = () => false;
 
 // Icon map - todas las redes sociales disponibles
 const socialIconMap: { [key: string]: typeof Linkedin } = {
@@ -64,7 +59,7 @@ function PortfolioApp() {
           addCertificate, updateCertificate, deleteCertificate,
           addExperience, updateExperience, deleteExperience,
           addSkill, updateSkill, deleteSkill } = useData();
-  const { isAuthenticated, login, logout } = useAuth();
+  const { isAuthenticated, login, logout, checking } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
   const [password, setPassword] = useState('');
   const [showEditor, setShowEditor] = useState(false);
@@ -78,8 +73,6 @@ function PortfolioApp() {
   const [editingExperience, setEditingExperience] = useState<any>(null);
   const [editingSkill, setEditingSkill] = useState<any>(null);
   
-  const isClient = useSyncExternalStore(emptySubscribe, getSnapshot, getServerSnapshot);
-
   // Apply theme colors
   useEffect(() => {
     if (profile) {
@@ -113,13 +106,23 @@ function PortfolioApp() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleLogin = () => {
-    if (login(password)) {
-      setShowLogin(false);
-      setPassword('');
-      toast.success('🔒 Modo editor activado');
-    } else {
-      toast.error('❌ Contraseña incorrecta');
+  const [loginLoading, setLoginLoading] = useState(false);
+
+  const handleLogin = async () => {
+    setLoginLoading(true);
+    try {
+      const success = await login(password);
+      if (success) {
+        setShowLogin(false);
+        setPassword('');
+        toast.success('Modo editor activado');
+      } else {
+        toast.error('Contraseña incorrecta');
+      }
+    } catch {
+      toast.error('Error al iniciar sesión');
+    } finally {
+      setLoginLoading(false);
     }
   };
 
@@ -185,7 +188,7 @@ function PortfolioApp() {
   };
 
   // Loading state
-  if (!isClient || loading) {
+  if (loading || checking) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-4">
@@ -238,7 +241,9 @@ function PortfolioApp() {
             ) : (
               <Dialog open={showLogin} onOpenChange={setShowLogin}>
                 <DialogTrigger asChild>
-                  <Button variant="ghost" size="sm" className="opacity-30 hover:opacity-100">🔒</Button>
+                  <Button variant="ghost" size="sm" className="gap-1 text-gray-500 hover:text-gray-700">
+                    🔒 Acceder
+                  </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-md">
                   <DialogHeader>
@@ -250,8 +255,9 @@ function PortfolioApp() {
                       <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleLogin()} placeholder="Ingresa la contraseña" className="mt-2" />
                     </div>
-                    <Button onClick={handleLogin} className="w-full" style={{ backgroundColor: profile.primaryColor, color: 'white' }}>
-                      Entrar al Editor
+                    <Button onClick={handleLogin} disabled={loginLoading} className="w-full" style={{ backgroundColor: profile.primaryColor, color: 'white' }}>
+                      {loginLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                      {loginLoading ? 'Verificando...' : 'Entrar al Editor'}
                     </Button>
                   </div>
                 </DialogContent>

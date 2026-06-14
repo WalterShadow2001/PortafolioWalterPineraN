@@ -1,13 +1,12 @@
 import { PrismaClient } from '@prisma/client'
+import { PrismaLibSQL } from '@prisma/adapter-libsql'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-let _prisma: PrismaClient | undefined = undefined
-
 export function getDb(): PrismaClient {
-  if (!_prisma) {
+  if (!globalForPrisma.prisma) {
     const tursoUrl = process.env.TURSO_URL
     const tursoAuthToken = process.env.TURSO_AUTH_TOKEN
 
@@ -18,23 +17,15 @@ export function getDb(): PrismaClient {
       throw new Error('TURSO_AUTH_TOKEN environment variable is not set')
     }
 
-    // In Prisma v6, PrismaLibSQL accepts a config object (not a pre-created client)
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { PrismaLibSQL } = require('@prisma/adapter-libsql')
-
     const adapter = new PrismaLibSQL({
       url: tursoUrl,
       authToken: tursoAuthToken,
     })
 
-    _prisma = new PrismaClient({
+    globalForPrisma.prisma = new PrismaClient({
       adapter,
     })
-
-    if (process.env.NODE_ENV !== 'production') {
-      globalForPrisma.prisma = _prisma
-    }
   }
 
-  return _prisma
+  return globalForPrisma.prisma
 }
