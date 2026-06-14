@@ -23,6 +23,7 @@ model Profile {
   accentColor     String   @default("#f59e0b")
   backgroundColor String   @default("#ffffff")
   textColor       String   @default("#1f2937")
+  theme           String   @default("default")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

@@ -20,6 +20,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { EyeToggle } from '@/components/ui/eye-toggle';
+import { themes, getTheme, getThemeLoadingColors } from '@/lib/themes';
+import { ThemeBackground } from '@/components/ui/theme-background';
 
 // Icon map - todas las redes sociales disponibles
 const socialIconMap: { [key: string]: typeof Linkedin } = {
@@ -75,6 +77,13 @@ function PortfolioApp() {
   const [editingExperience, setEditingExperience] = useState<any>(null);
   const [editingSkill, setEditingSkill] = useState<any>(null);
   
+  // Store theme to localStorage for loading screen
+  useEffect(() => {
+    if (profile?.theme) {
+      try { localStorage.setItem('portfolio-theme', profile.theme); } catch {}
+    }
+  }, [profile?.theme]);
+
   // Apply theme colors
   useEffect(() => {
     if (profile) {
@@ -85,6 +94,27 @@ function PortfolioApp() {
       document.documentElement.style.setProperty('--color-text', profile.textColor);
     }
   }, [profile]);
+
+  // Apply theme CSS
+  useEffect(() => {
+    if (profile) {
+      const theme = getTheme(profile.theme || 'default');
+      // Remove old theme style element
+      const oldStyle = document.getElementById('theme-css');
+      if (oldStyle) oldStyle.remove();
+      // Add new theme CSS if exists
+      if (theme.css) {
+        const style = document.createElement('style');
+        style.id = 'theme-css';
+        style.textContent = theme.css;
+        document.head.appendChild(style);
+      }
+      return () => {
+        const el = document.getElementById('theme-css');
+        if (el) el.remove();
+      };
+    }
+  }, [profile?.theme]);
 
   // Scroll spy
   useEffect(() => {
@@ -189,14 +219,59 @@ function PortfolioApp() {
     setEditingSkill(null);
   };
 
-  // Loading state
+  // Loading state - themed loading screen
   if (loading || checking) {
+    let savedTheme = 'default';
+    try { savedTheme = localStorage.getItem('portfolio-theme') || 'default'; } catch {}
+    const loadingColors = getThemeLoadingColors(savedTheme);
+    const loadingTheme = getTheme(savedTheme);
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-4">
-          <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
-          <span className="text-gray-500 text-lg">Cargando portafolio...</span>
-        </motion.div>
+      <div className={`min-h-screen flex items-center justify-center ${loadingTheme.className}`} style={{ backgroundColor: loadingColors.bg, color: loadingColors.text }}>
+        {/* Apply theme CSS for loading screen */}
+        {loadingTheme.css && <style>{loadingTheme.css}</style>}
+        <ThemeBackground themeId={savedTheme} />
+        <div className="relative z-10">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }} 
+            animate={{ opacity: 1, scale: 1 }} 
+            transition={{ duration: 0.5 }}
+            className="flex flex-col items-center gap-6"
+          >
+            <div className="relative">
+              <div className="w-20 h-20 rounded-full border-4 border-t-transparent animate-spin" style={{ borderColor: `${loadingColors.accent}40`, borderTopColor: 'transparent' }} />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full" style={{ background: `linear-gradient(135deg, ${loadingColors.accent}, ${loadingColors.accent}80)` }} />
+              </div>
+            </div>
+            <div className="text-center">
+              <motion.h2 
+                initial={{ opacity: 0, y: 10 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                transition={{ delay: 0.2 }}
+                className="text-2xl font-bold mb-2" 
+                style={{ color: loadingColors.text }}
+              >
+                Cargando portafolio
+              </motion.h2>
+              <motion.p 
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                transition={{ delay: 0.4 }}
+                className="text-sm" 
+                style={{ color: loadingColors.text, opacity: 0.6 }}
+              >
+                Preparando tu experiencia...
+              </motion.p>
+            </div>
+            <motion.div 
+              initial={{ width: 0 }} 
+              animate={{ width: 120 }} 
+              transition={{ delay: 0.3, duration: 1.5, repeat: Infinity }}
+              className="h-1 rounded-full" 
+              style={{ background: `linear-gradient(90deg, ${loadingColors.accent}, transparent)` }}
+            />
+          </motion.div>
+        </div>
       </div>
     );
   }
@@ -209,10 +284,16 @@ function PortfolioApp() {
     );
   }
 
+  const currentTheme = getTheme(profile.theme || 'default');
+
   return (
-    <div className="min-h-screen" style={{ backgroundColor: profile.backgroundColor, color: profile.textColor }}>
+    <div className={`min-h-screen relative ${currentTheme.className}`} style={{ ...currentTheme.bodyStyle, backgroundColor: profile.backgroundColor, color: profile.textColor }}>
+      {/* Theme Background */}
+      <ThemeBackground themeId={profile.theme || 'default'} />
+
+      <div className="relative z-10">
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm">
+      <nav className="fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm" style={currentTheme.navStyle}>
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <span className="font-bold text-xl" style={{ color: profile.primaryColor }}>
             {profile.name.split(' ')[0]}
@@ -267,8 +348,7 @@ function PortfolioApp() {
                           <EyeToggle
                             show={showPassword}
                             onToggle={() => setShowPassword(!showPassword)}
-                            size={38}
-                            primaryColor={profile.primaryColor}
+                            size={28}
                           />
                         </div>
                       </div>
@@ -319,7 +399,7 @@ function PortfolioApp() {
             )}
           </div>
 
-          <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-4xl md:text-6xl font-bold mb-4">
+          <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-4xl md:text-6xl font-bold mb-4" style={{ color: profile.textColor }}>
             {profile.name}
           </motion.h1>
           
@@ -368,7 +448,7 @@ function PortfolioApp() {
 
       {/* About Section */}
       {profile.bio && (
-        <section id="about" className="py-20 px-4" style={{ backgroundColor: `${profile.primaryColor}08` }}>
+        <section id="about" className="py-20 px-4" style={{ ...(currentTheme.altSectionStyle || {}), backgroundColor: `${profile.primaryColor}08` }}>
           <div className="max-w-4xl mx-auto">
             <motion.h2 initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
               className="text-3xl font-bold text-center mb-8" style={{ color: profile.primaryColor }}>
@@ -399,10 +479,10 @@ function PortfolioApp() {
                     <motion.div key={exp.id} initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
                       className="relative mb-8 last:mb-0 group">
                       <div className="absolute w-4 h-4 rounded-full -left-[25px] top-0" style={{ backgroundColor: profile.primaryColor }} />
-                      <div className="bg-white p-5 rounded-xl shadow-sm ml-4 card-hover border border-gray-100">
+                      <div className="bg-white p-5 rounded-xl shadow-sm ml-4 card-hover border border-gray-100" style={currentTheme.cardStyle}>
                         <div className="flex items-start justify-between">
                           <div>
-                            <h4 className="font-semibold text-lg">{exp.title}</h4>
+                            <h4 className="font-semibold text-lg" style={{ color: profile.textColor }}>{exp.title}</h4>
                             <p style={{ color: profile.primaryColor }} className="font-medium">{exp.company}</p>
                           </div>
                           {isAuthenticated && (
@@ -437,10 +517,10 @@ function PortfolioApp() {
                     <motion.div key={exp.id} initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
                       className="relative mb-8 last:mb-0 group">
                       <div className="absolute w-4 h-4 rounded-full -left-[25px] top-0" style={{ backgroundColor: profile.secondaryColor }} />
-                      <div className="bg-white p-5 rounded-xl shadow-sm ml-4 card-hover border border-gray-100">
+                      <div className="bg-white p-5 rounded-xl shadow-sm ml-4 card-hover border border-gray-100" style={currentTheme.cardStyle}>
                         <div className="flex items-start justify-between">
                           <div>
-                            <h4 className="font-semibold text-lg">{exp.title}</h4>
+                            <h4 className="font-semibold text-lg" style={{ color: profile.textColor }}>{exp.title}</h4>
                             <p style={{ color: profile.secondaryColor }} className="font-medium">{exp.company}</p>
                           </div>
                           {isAuthenticated && (
@@ -478,7 +558,7 @@ function PortfolioApp() {
 
       {/* Projects Section */}
       {profile.projects && profile.projects.length > 0 && (
-        <section id="projects" className="py-20 px-4" style={{ backgroundColor: `${profile.primaryColor}08` }}>
+        <section id="projects" className="py-20 px-4" style={{ ...(currentTheme.altSectionStyle || {}), backgroundColor: `${profile.primaryColor}08` }}>
           <div className="max-w-6xl mx-auto">
             <motion.h2 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
               className="text-3xl font-bold text-center mb-12" style={{ color: profile.primaryColor }}>
@@ -490,7 +570,7 @@ function PortfolioApp() {
                 const images = project.images ? JSON.parse(project.images) : [];
                 return (
                   <motion.div key={project.id} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-                    className="bg-white rounded-xl shadow-sm overflow-hidden card-hover border border-gray-100 group">
+                    className="bg-white rounded-xl shadow-sm overflow-hidden card-hover border border-gray-100 group" style={currentTheme.cardStyle}>
                     <div className="h-48 cursor-pointer overflow-hidden relative"
                       onClick={() => images.length > 0 && setLightbox({ images, index: 0 })}>
                       {images.length > 0 ? (
@@ -519,7 +599,7 @@ function PortfolioApp() {
                     </div>
                     <div className="p-5">
                       <div className="flex items-start justify-between mb-2">
-                        <h3 className="font-semibold text-lg">{project.title}</h3>
+                        <h3 className="font-semibold text-lg" style={{ color: profile.textColor }}>{project.title}</h3>
                         {project.url && (
                           <a href={project.url} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-500">
                             <ExternalLink size={18} />
@@ -574,7 +654,7 @@ function PortfolioApp() {
                 }, {})
               ).map(([category, skills]: [string, any], ci: number) => (
                 <motion.div key={category} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: ci * 0.1 }}
-                  className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                  className="bg-white p-6 rounded-xl shadow-sm border border-gray-100" style={currentTheme.cardStyle}>
                   <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: profile.primaryColor }}>
                     <Code size={20} /> {category}
                   </h3>
@@ -582,7 +662,7 @@ function PortfolioApp() {
                     {skills.map((skill: any, si: number) => (
                       <div key={skill.id} className="group">
                         <div className="flex justify-between mb-1">
-                          <span className="font-medium">{skill.name}</span>
+                          <span className="font-medium" style={{ color: profile.textColor }}>{skill.name}</span>
                           <div className="flex items-center gap-2">
                             <span style={{ color: profile.primaryColor }}>{skill.level}%</span>
                             {isAuthenticated && (
@@ -622,7 +702,7 @@ function PortfolioApp() {
 
       {/* Certificates Section */}
       {profile.certificates && profile.certificates.length > 0 && (
-        <section id="certificates" className="py-20 px-4" style={{ backgroundColor: `${profile.primaryColor}08` }}>
+        <section id="certificates" className="py-20 px-4" style={{ ...(currentTheme.altSectionStyle || {}), backgroundColor: `${profile.primaryColor}08` }}>
           <div className="max-w-6xl mx-auto">
             <motion.h2 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
               className="text-3xl font-bold text-center mb-12" style={{ color: profile.primaryColor }}>
@@ -634,7 +714,7 @@ function PortfolioApp() {
                 const isPDF = cert.fileType === 'pdf';
                 return (
                   <motion.div key={cert.id} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-                    className="bg-white rounded-xl shadow-sm overflow-hidden card-hover border border-gray-100 group">
+                    className="bg-white rounded-xl shadow-sm overflow-hidden card-hover border border-gray-100 group" style={currentTheme.cardStyle}>
                     <div className="h-40 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 relative">
                       {cert.fileData ? (
                         isPDF ? (
@@ -679,7 +759,7 @@ function PortfolioApp() {
                       )}
                     </div>
                     <div className="p-4">
-                      <h3 className="font-semibold text-lg">{cert.title}</h3>
+                      <h3 className="font-semibold text-lg" style={{ color: profile.textColor }}>{cert.title}</h3>
                       {cert.institution && <p className="text-gray-600 text-sm">{cert.institution}</p>}
                       {cert.issueDate && <p className="text-gray-400 text-sm mt-1">{cert.issueDate}</p>}
                     </div>
@@ -712,21 +792,21 @@ function PortfolioApp() {
           </p>
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="space-y-4">
             {profile.email && (
-              <a href={`mailto:${profile.email}`} className="flex items-center justify-center gap-3 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-100">
+              <a href={`mailto:${profile.email}`} className="flex items-center justify-center gap-3 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-100" style={currentTheme.cardStyle}>
                 <Mail style={{ color: profile.primaryColor }} size={24} />
-                <span className="text-lg">{profile.email}</span>
+                <span className="text-lg" style={{ color: profile.textColor }}>{profile.email}</span>
               </a>
             )}
             {profile.phone && (
-              <a href={`tel:${profile.phone}`} className="flex items-center justify-center gap-3 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-100">
+              <a href={`tel:${profile.phone}`} className="flex items-center justify-center gap-3 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-100" style={currentTheme.cardStyle}>
                 <Phone style={{ color: profile.primaryColor }} size={24} />
-                <span className="text-lg">{profile.phone}</span>
+                <span className="text-lg" style={{ color: profile.textColor }}>{profile.phone}</span>
               </a>
             )}
             {profile.location && (
-              <div className="flex items-center justify-center gap-3 p-4 bg-white rounded-xl shadow-sm border border-gray-100">
+              <div className="flex items-center justify-center gap-3 p-4 bg-white rounded-xl shadow-sm border border-gray-100" style={currentTheme.cardStyle}>
                 <MapPin style={{ color: profile.primaryColor }} size={24} />
-                <span className="text-lg">{profile.location}</span>
+                <span className="text-lg" style={{ color: profile.textColor }}>{profile.location}</span>
               </div>
             )}
           </motion.div>
@@ -819,6 +899,7 @@ function PortfolioApp() {
           primaryColor={profile.primaryColor}
         />
       )}
+      </div>{/* end z-10 wrapper */}
     </div>
   );
 }
@@ -829,6 +910,7 @@ function EditorPanel({ profile, updateProfile, onClose }: any) {
     name: '', title: '', bio: '', email: '', phone: '', location: '',
     primaryColor: '#3b82f6', secondaryColor: '#1e40af', accentColor: '#f59e0b',
     backgroundColor: '#ffffff', textColor: '#1f2937',
+    theme: 'default',
   });
   
   // Estado para redes sociales
@@ -847,6 +929,7 @@ function EditorPanel({ profile, updateProfile, onClose }: any) {
     accentColor: profile?.accentColor || '#f59e0b',
     backgroundColor: profile?.backgroundColor || '#ffffff',
     textColor: profile?.textColor || '#1f2937',
+    theme: profile?.theme || 'default',
   };
   
   // Inicializar redes sociales desde profile
@@ -931,10 +1014,11 @@ function EditorPanel({ profile, updateProfile, onClose }: any) {
       </div>
       
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="w-full grid grid-cols-3 bg-gray-50 p-1">
+        <TabsList className="w-full grid grid-cols-4 bg-gray-50 p-1">
           <TabsTrigger value="profile" className="text-sm">👤 Perfil</TabsTrigger>
           <TabsTrigger value="social" className="text-sm">🌐 Redes</TabsTrigger>
           <TabsTrigger value="colors" className="text-sm">🎨 Colores</TabsTrigger>
+          <TabsTrigger value="themes" className="text-sm">🎭 Plantillas</TabsTrigger>
         </TabsList>
 
         <div className="max-h-[50vh] overflow-y-auto p-4">
@@ -994,6 +1078,44 @@ function EditorPanel({ profile, updateProfile, onClose }: any) {
                 </div>
               </div>
             ))}
+          </TabsContent>
+
+          <TabsContent value="themes" className="mt-0">
+            <p className="text-xs text-gray-500 mb-3">Selecciona una plantilla para cambiar el diseño visual</p>
+            <div className="space-y-2">
+              {themes.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => {
+                    const colorsToUpdate: any = {};
+                    if (t.colors.primaryColor) colorsToUpdate.primaryColor = t.colors.primaryColor;
+                    if (t.colors.secondaryColor) colorsToUpdate.secondaryColor = t.colors.secondaryColor;
+                    if (t.colors.accentColor) colorsToUpdate.accentColor = t.colors.accentColor;
+                    if (t.colors.backgroundColor) colorsToUpdate.backgroundColor = t.colors.backgroundColor;
+                    if (t.colors.textColor) colorsToUpdate.textColor = t.colors.textColor;
+                    setData({ ...currentData, ...colorsToUpdate, theme: t.id });
+                  }}
+                  className={`w-full p-3 rounded-lg border text-left transition-all flex items-center gap-3 ${
+                    (currentData as any).theme === t.id || ((!(currentData as any).theme || (currentData as any).theme === 'default') && t.id === 'default')
+                      ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <span className="text-2xl">{t.icon}</span>
+                  <div className="flex-1">
+                    <span className="font-medium text-sm">{t.name}</span>
+                    <p className="text-xs text-gray-500">{t.description}</p>
+                  </div>
+                  {t.colors.primaryColor && (
+                    <div className="flex gap-1">
+                      {[t.colors.primaryColor, t.colors.secondaryColor, t.colors.accentColor].filter(Boolean).map((c, i) => (
+                        <div key={i} className="w-4 h-4 rounded-full border border-gray-200" style={{ backgroundColor: c }} />
+                      ))}
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
           </TabsContent>
         </div>
       </Tabs>
@@ -1266,7 +1388,7 @@ function SkillEditModal({ skill, onClose, onSave, primaryColor }: any) {
   );
 }
 
-// PDF Export Dialog
+// PDF Export Dialog - 12 Plantillas Profesionales con Auto-Fit
 function PDFExportDialog({ open, onOpenChange, profile }: any) {
   const [selectedTemplate, setSelectedTemplate] = useState('classic');
   const [sections, setSections] = useState({ experience: true, projects: true, skills: true, certificates: true, contact: true });
@@ -1278,14 +1400,22 @@ function PDFExportDialog({ open, onOpenChange, profile }: any) {
     printWindow.document.write(html);
     printWindow.document.close();
     printWindow.focus();
-    setTimeout(() => printWindow.print(), 250);
+    setTimeout(() => printWindow.print(), 600);
   };
 
   const templates = [
-    { id: 'classic', name: 'Clásico', desc: 'Tradicional y profesional' },
-    { id: 'modern', name: 'Moderno', desc: 'Barra lateral con color' },
-    { id: 'creative', name: 'Creativo', desc: 'Diseño con gradientes' },
-    { id: 'minimal', name: 'Minimalista', desc: 'Solo lo esencial' },
+    { id: 'classic', name: 'Clásico', desc: 'Tradicional y profesional', icon: '📋' },
+    { id: 'modern', name: 'Moderno', desc: 'Barra lateral con color', icon: '🎨' },
+    { id: 'creative', name: 'Creativo', desc: 'Gradientes y timeline', icon: '✨' },
+    { id: 'minimal', name: 'Minimalista', desc: 'Solo lo esencial', icon: '◻️' },
+    { id: 'executive', name: 'Ejecutivo', desc: 'Corporativo y elegante', icon: '👔' },
+    { id: 'corporate', name: 'Corporativo', desc: 'Barra lateral delgada', icon: '🏢' },
+    { id: 'elegant', name: 'Elegante', desc: 'Refinado y sofisticado', icon: '✒️' },
+    { id: 'tech', name: 'Tecnológico', desc: 'Estilo developer', icon: '💻' },
+    { id: 'infographic', name: 'Infográfico', desc: 'Visual con iconos y datos', icon: '📊' },
+    { id: 'bold', name: 'Audaz', desc: 'Tipografía grande y llamativa', icon: '🔤' },
+    { id: 'compact', name: 'Compacto', desc: 'Máximo aprovechamiento del espacio', icon: '📄' },
+    { id: 'professional', name: 'Profesional', desc: 'Diseño limpio y corporativo', icon: '💼' },
   ];
 
   return (
@@ -1295,38 +1425,40 @@ function PDFExportDialog({ open, onOpenChange, profile }: any) {
           <DialogTitle className="text-xl">📄 Generar CV en PDF</DialogTitle>
         </DialogHeader>
         <div className="grid md:grid-cols-2 gap-6 py-4">
-          <div className="space-y-6">
+          <div className="space-y-4">
             <div>
-              <h3 className="font-semibold mb-3">Plantilla</h3>
-              <div className="grid grid-cols-2 gap-2">
+              <h3 className="font-semibold mb-2 text-sm">Plantilla</h3>
+              <div className="grid grid-cols-4 gap-1.5 max-h-52 overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
                 {templates.map(t => (
                   <button key={t.id} onClick={() => setSelectedTemplate(t.id)}
-                    className={`p-3 rounded-lg border text-left transition-all ${selectedTemplate === t.id ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' : 'border-gray-200 hover:border-gray-300'}`}>
-                    <span className="font-medium">{t.name}</span>
-                    <p className="text-xs text-gray-500">{t.desc}</p>
+                    className={`p-2 rounded-lg border text-left transition-all ${selectedTemplate === t.id ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <span className="text-lg">{t.icon}</span>
+                    <span className="font-medium text-xs block leading-tight mt-0.5">{t.name}</span>
+                    <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">{t.desc}</p>
                   </button>
                 ))}
               </div>
             </div>
             <div>
-              <h3 className="font-semibold mb-3">Secciones a incluir</h3>
-              <div className="space-y-2">
+              <h3 className="font-semibold mb-2 text-sm">Secciones a incluir</h3>
+              <div className="space-y-1.5">
                 {Object.entries(sections).map(([key, value]) => (
-                  <label key={key} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
+                  <label key={key} className="flex items-center gap-3 p-1.5 hover:bg-gray-50 rounded cursor-pointer">
                     <input type="checkbox" checked={value as boolean} onChange={(e) => setSections({ ...sections, [key]: e.target.checked })} className="w-4 h-4" />
-                    <span className="capitalize">{key === 'experience' ? '💼 Experiencia y Educación' : key === 'projects' ? '📁 Proyectos' : key === 'skills' ? '💻 Habilidades' : key === 'certificates' ? '🏆 Certificados' : '📧 Contacto'}</span>
+                    <span className="capitalize text-sm">{key === 'experience' ? '💼 Experiencia y Educación' : key === 'projects' ? '📁 Proyectos' : key === 'skills' ? '💻 Habilidades' : key === 'certificates' ? '🏆 Certificados' : '📧 Contacto'}</span>
                   </label>
                 ))}
               </div>
             </div>
-            <Button onClick={handlePrint} className="w-full gap-2 py-6 text-lg" style={{ backgroundColor: profile.primaryColor, color: 'white' }}>
+            <Button onClick={handlePrint} className="w-full gap-2 py-4 text-base" style={{ backgroundColor: profile.primaryColor, color: 'white' }}>
               📥 Generar e Imprimir PDF
             </Button>
+            <p className="text-xs text-gray-400 text-center">El CV se ajustará automáticamente a una página carta</p>
           </div>
           <div>
-            <h3 className="font-semibold mb-3">Vista Previa</h3>
+            <h3 className="font-semibold mb-2 text-sm">Vista Previa</h3>
             <div className="border rounded-lg overflow-hidden bg-white shadow-inner" style={{ transform: 'scale(0.55)', transformOrigin: 'top left', width: '182%', height: '550px' }}>
-              <div dangerouslySetInnerHTML={{ __html: generateCVContent(profile, selectedTemplate, sections) }} />
+              <div dangerouslySetInnerHTML={{ __html: `<style>${getStyles(selectedTemplate, profile)}</style>${generateCVContent(profile, selectedTemplate, sections)}` }} />
             </div>
           </div>
         </div>
@@ -1336,77 +1468,270 @@ function PDFExportDialog({ open, onOpenChange, profile }: any) {
 }
 
 function generateCVHTML(profile: any, template: string, sections: any): string {
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>CV - ${profile.name}</title><style>${getStyles(template, profile)}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:letter;margin:0}}</style></head><body>${generateCVContent(profile, template, sections)}</body></html>`;
+  const autoFitScript = `<script>window.addEventListener('DOMContentLoaded',function(){setTimeout(function(){var cv=document.querySelector('.cv-container');if(!cv)return;var maxH=1056;var h=cv.scrollHeight;if(h>maxH){document.body.style.zoom=(maxH/h).toFixed(4)}},300)})</script>`;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>CV - ${profile.name}</title><style>${getStyles(template, profile)}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:letter;margin:0}}</style></head><body>${generateCVContent(profile, template, sections)}${autoFitScript}</body></html>`;
+}
+
+function getPhotoStyles(profile: any, size: number = 60, inline: boolean = false): string {
+  const s = size;
+  const m = inline ? '0' : '0 auto 8px';
+  if (profile.photo) {
+    return `.photo-circle{width:${s}px;height:${s}px;border-radius:50%;overflow:hidden;margin:${m};border:3px solid ${profile.primaryColor}}.photo-circle img{width:100%;height:100%;object-fit:cover}`;
+  }
+  return `.photo-circle{width:${s}px;height:${s}px;border-radius:50%;background:linear-gradient(135deg,${profile.primaryColor},${profile.secondaryColor || '#60a5fa'});display:flex;align-items:center;justify-content:center;margin:${m};color:#fff;font-size:${Math.round(s*0.4)}pt;font-weight:bold;border:3px solid ${profile.primaryColor}`;
+}
+
+function getPhotoHtml(profile: any): string {
+  if (profile.photo) {
+    return `<div class="photo-circle"><img src="${profile.photo}" alt="${profile.name}"></div>`;
+  }
+  return `<div class="photo-circle">${profile.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}</div>`;
 }
 
 function getStyles(template: string, profile: any): string {
-  const base = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;font-size:10pt;line-height:1.4;color:#333;background:#fff}`;
-  const photoStyle = profile.photo 
-    ? `.photo-circle{width:80px;height:80px;border-radius:50%;overflow:hidden;margin:0 auto 12px;border:3px solid ${profile.primaryColor}}.photo-circle img{width:100%;height:100%;object:cover}` 
-    : `.photo-circle{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,${profile.primaryColor},${profile.secondaryColor});display:flex;align-items:center;justify-content:center;margin:0 auto 12px;color:#fff;font-size:28pt;font-weight:bold;border:3px solid ${profile.primaryColor}}`;
-  
+  const pc = profile.primaryColor || '#2563eb';
+  const sc = profile.secondaryColor || '#60a5fa';
+  const ac = profile.accentColor || '#f59e0b';
+  const base = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;font-size:8.5pt;line-height:1.3;color:#2d2d2d;background:#fff}`;
+
   switch(template) {
     case 'modern':
-      return base + `.cv-container{display:flex;min-height:11in}.sidebar{width:32%;background:${profile.primaryColor};color:#fff;padding:20px}.main{width:68%;padding:20px}${photoStyle}.name{font-size:16pt;font-weight:bold;text-align:center;margin-bottom:4px}.title{font-size:10pt;text-align:center;opacity:0.9;margin-bottom:15px}.sidebar-section{margin-bottom:15px}.sidebar-title{font-size:9pt;font-weight:bold;border-bottom:1px solid rgba(255,255,255,0.3);padding-bottom:4px;margin-bottom:8px;text-transform:uppercase}.contact-item{margin-bottom:6px;font-size:9pt}.section{margin-bottom:12px}.section-title{font-size:10pt;font-weight:bold;color:${profile.primaryColor};margin-bottom:8px;text-transform:uppercase}.item{margin-bottom:8px}.item-title{font-weight:bold;font-size:10pt}.item-subtitle{color:#666;font-size:9pt}.skill-item{margin-bottom:6px}.skill-name{display:flex;justify-content:space-between;font-size:9pt;margin-bottom:2px}.skill-bar{height:4px;background:rgba(255,255,255,0.3);border-radius:2px}.skill-fill{height:100%;background:#fff;border-radius:2px}`;
+      return base + getPhotoStyles(profile, 56) + `.cv-container{display:flex;width:8.5in;min-height:11in}.sidebar{width:30%;background:${pc};color:#fff;padding:16px 12px}.main{width:70%;padding:14px 16px}.name{font-size:13pt;font-weight:700;text-align:center;margin-bottom:2px;letter-spacing:0.5px}.title{font-size:8.5pt;text-align:center;opacity:0.9;margin-bottom:12px}.sidebar-section{margin-bottom:10px}.sidebar-title{font-size:7.5pt;font-weight:700;border-bottom:1px solid rgba(255,255,255,0.3);padding-bottom:3px;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px}.contact-item{margin-bottom:4px;font-size:8pt;line-height:1.3}.section{margin-bottom:8px}.section-title{font-size:8.5pt;font-weight:700;color:${pc};margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px;padding-bottom:2px;border-bottom:1.5px solid ${pc}}.item{margin-bottom:5px}.item-title{font-weight:700;font-size:8.5pt}.item-subtitle{color:#666;font-size:7.5pt}.item-date{color:#999;font-size:7pt}.item-desc{color:#555;font-size:7.5pt;margin-top:1px}.skill-item{margin-bottom:4px}.skill-name{display:flex;justify-content:space-between;font-size:7.5pt;margin-bottom:1px}.skill-bar{height:3px;background:rgba(255,255,255,0.3);border-radius:1.5px}.skill-fill{height:100%;background:#fff;border-radius:1.5px}`;
+
     case 'creative':
-      return base + `.cv-container{max-width:8.5in;min-height:11in;margin:0 auto;padding:0.4in}.header{background:linear-gradient(135deg,${profile.primaryColor},${profile.secondaryColor});color:#fff;padding:18px;border-radius:8px;margin-bottom:12px;display:flex;gap:15px;align-items:center}${photoStyle.replace('margin:0 auto 12px','margin:0')}.header-info{flex:1}.name{font-size:18pt;font-weight:bold}.title{font-size:11pt;opacity:0.9;margin-bottom:6px}.contact-line{font-size:8pt;opacity:0.8}.section{margin-bottom:10px}.section-title{font-size:10pt;font-weight:bold;color:${profile.primaryColor};display:flex;align-items:center;gap:8px;margin-bottom:8px}.section-title::after{content:'';flex:1;height:2px;background:linear-gradient(to right,${profile.primaryColor},transparent)}.timeline{border-left:2px solid ${profile.primaryColor};padding-left:12px}.item{margin-bottom:8px;position:relative}.item::before{content:'';position:absolute;left:-16px;top:3px;width:6px;height:6px;border-radius:50%;background:${profile.primaryColor}}.item-title{font-weight:bold;font-size:10pt}.item-subtitle{color:#666;font-size:9pt}.skills-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.skill-item{text-align:center}.skill-circle{width:35px;height:35px;border-radius:50%;border:2px solid ${profile.primaryColor};display:flex;align-items:center;justify-content:center;margin:0 auto 3px;font-weight:bold;font-size:9pt}.skill-name{font-size:8pt}`;
+      return base + getPhotoStyles(profile, 50, true) + `.cv-container{width:8.5in;min-height:11in;padding:0.3in}.header{background:linear-gradient(135deg,${pc},${sc});color:#fff;padding:14px 18px;border-radius:6px;margin-bottom:10px;display:flex;gap:12px;align-items:center}.header-info{flex:1}.name{font-size:15pt;font-weight:700}.title{font-size:9pt;opacity:0.9;margin-bottom:3px}.contact-line{font-size:7.5pt;opacity:0.8}.section{margin-bottom:8px}.section-title{font-size:8.5pt;font-weight:700;color:${pc};display:flex;align-items:center;gap:6px;margin-bottom:5px}.section-title::after{content:'';flex:1;height:1.5px;background:linear-gradient(to right,${pc},transparent)}.timeline{border-left:2px solid ${pc};padding-left:10px}.item{margin-bottom:5px;position:relative}.item::before{content:'';position:absolute;left:-14px;top:3px;width:5px;height:5px;border-radius:50%;background:${pc}}.item-title{font-weight:700;font-size:8.5pt}.item-subtitle{color:#666;font-size:7.5pt}.item-desc{color:#555;font-size:7.5pt;margin-top:1px}.skills-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}.skill-item{text-align:center}.skill-circle{width:30px;height:30px;border-radius:50%;border:2px solid ${pc};display:flex;align-items:center;justify-content:center;margin:0 auto 2px;font-weight:700;font-size:8pt;color:${pc}}.skill-name{font-size:7pt}`;
+
     case 'minimal':
-      return base + `.cv-container{max-width:8.5in;min-height:11in;margin:0 auto;padding:0.5in}.header{text-align:center;margin-bottom:18px}${photoStyle}.name{font-size:26pt;font-weight:300;letter-spacing:3px;margin-bottom:6px;text-transform:uppercase}.title{font-size:11pt;color:#888;letter-spacing:2px;margin-bottom:8px;text-transform:uppercase}.contact-line{font-size:9pt;color:#666}.section{margin-bottom:15px}.section-title{font-size:9pt;font-weight:600;letter-spacing:2px;color:#333;margin-bottom:10px;text-transform:uppercase;border-bottom:1px solid #eee;padding-bottom:4px}.item{margin-bottom:10px}.item-header{display:flex;justify-content:space-between}.item-title{font-weight:500;font-size:10pt}.item-date{color:#888;font-size:9pt}.item-subtitle{color:#666;font-size:9pt;margin-top:2px}.skills-list{display:flex;flex-wrap:wrap;gap:4px}.skill-tag{padding:3px 8px;background:#f0f0f0;border-radius:3px;font-size:9pt}`;
-    default:
-      return base + `.cv-container{max-width:8.5in;min-height:11in;margin:0 auto;padding:0.4in}.header{text-align:center;border-bottom:2px solid ${profile.primaryColor};padding-bottom:12px;margin-bottom:12px}${photoStyle}.name{font-size:22pt;font-weight:bold;color:${profile.primaryColor};margin-bottom:4px}.title{font-size:12pt;color:#666;margin-bottom:8px}.contact-info{display:flex;justify-content:center;gap:15px;font-size:9pt;color:#666;flex-wrap:wrap}.section{margin-bottom:12px}.section-title{font-size:11pt;font-weight:bold;color:${profile.primaryColor};border-bottom:1px solid ${profile.primaryColor};padding-bottom:2px;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px}.item{margin-bottom:8px}.item-title{font-weight:bold;font-size:10pt}.item-subtitle{color:#666;font-size:9pt}.item-date{color:#888;font-size:8pt}.item-desc{color:#555;font-size:9pt;margin-top:2px}.skills-grid{display:flex;flex-wrap:wrap;gap:6px}.skill-item{display:flex;align-items:center;gap:4px}.skill-bar{width:50px;height:5px;background:#eee;border-radius:2px}.skill-fill{height:100%;background:${profile.primaryColor};border-radius:2px}`;
+      return base + getPhotoStyles(profile, 50) + `.cv-container{width:8.5in;min-height:11in;margin:0 auto;padding:0.4in 0.45in}.header{text-align:center;margin-bottom:14px}.name{font-size:20pt;font-weight:300;letter-spacing:3px;margin-bottom:3px;text-transform:uppercase;color:#222}.title{font-size:9pt;color:#888;letter-spacing:2px;margin-bottom:6px;text-transform:uppercase}.contact-line{font-size:8pt;color:#666}.section{margin-bottom:10px}.section-title{font-size:8pt;font-weight:600;letter-spacing:2px;color:#333;margin-bottom:6px;text-transform:uppercase;border-bottom:1px solid #e0e0e0;padding-bottom:3px}.item{margin-bottom:7px}.item-header{display:flex;justify-content:space-between;align-items:baseline}.item-title{font-weight:500;font-size:8.5pt}.item-date{color:#999;font-size:7.5pt}.item-subtitle{color:#777;font-size:7.5pt;margin-top:1px}.item-desc{color:#555;font-size:7.5pt;margin-top:2px}.skills-list{display:flex;flex-wrap:wrap;gap:4px}.skill-tag{padding:2px 7px;background:#f5f5f5;border-radius:2px;font-size:7.5pt;color:#555}`;
+
+    case 'executive':
+      return base + getPhotoStyles(profile, 44, true) + `.cv-container{width:8.5in;min-height:11in}.header-band{background:${pc};color:#fff;padding:14px 20px;display:flex;align-items:center;gap:14px}.header-text{flex:1}.name{font-size:16pt;font-weight:700;letter-spacing:0.5px}.title{font-size:9pt;opacity:0.9;margin-top:1px}.contact-row{display:flex;gap:12px;font-size:7pt;opacity:0.85;margin-top:3px;flex-wrap:wrap}.body-cols{display:flex;padding:12px 16px;gap:14px}.col-left{flex:2}.col-right{flex:1;border-left:1px solid #e8e8e8;padding-left:14px}.section{margin-bottom:8px}.section-title{font-size:8pt;font-weight:700;color:${pc};text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;padding-bottom:2px;border-bottom:1px solid ${pc}30}.item{margin-bottom:5px}.item-title{font-weight:700;font-size:8.5pt}.item-subtitle{color:#666;font-size:7.5pt}.item-date{color:#999;font-size:7pt}.item-desc{color:#555;font-size:7.5pt;margin-top:1px}.skill-item{margin-bottom:3px}.skill-name{font-size:7.5pt;margin-bottom:1px;display:flex;justify-content:space-between}.skill-bar{height:3px;background:#eee;border-radius:1.5px}.skill-fill{height:100%;background:${pc};border-radius:1.5px}.cert-item{font-size:7.5pt;margin-bottom:3px}.cert-item strong{display:block}`;
+
+    case 'corporate':
+      return base + getPhotoStyles(profile, 48) + `.cv-container{width:8.5in;min-height:11in;border-left:4px solid ${pc};padding:16px 20px}.header{display:flex;align-items:center;gap:14px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #e8e8e8}.header-main{flex:1}.name{font-size:16pt;font-weight:700;color:${pc};margin-bottom:1px}.title{font-size:9pt;color:#666;margin-bottom:3px}.contact-info{display:flex;gap:10px;font-size:7.5pt;color:#888;flex-wrap:wrap}.section{margin-bottom:8px}.section-title{font-size:8pt;font-weight:700;color:${pc};text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;padding-left:8px;border-left:3px solid ${pc}}.item{margin-bottom:5px;padding-left:8px}.item-header{display:flex;justify-content:space-between;align-items:baseline}.item-title{font-weight:700;font-size:8.5pt}.item-date{color:#999;font-size:7pt}.item-subtitle{color:#666;font-size:7.5pt}.item-desc{color:#555;font-size:7.5pt;margin-top:1px}.skills-grid{display:flex;flex-wrap:wrap;gap:4px}.skill-tag{padding:2px 6px;background:${pc}12;border:1px solid ${pc}30;border-radius:2px;font-size:7.5pt;color:${pc}}.cert-item{font-size:7.5pt;margin-bottom:2px}`;
+
+    case 'elegant':
+      return base + getPhotoStyles(profile, 52) + `.cv-container{width:8.5in;min-height:11in;padding:0.3in;border:2px double ${pc}20;margin:0}.inner{border:1px solid ${pc}15;padding:14px 18px;min-height:calc(11in - 0.6in)}.header{text-align:center;margin-bottom:10px}.name{font-size:18pt;font-weight:300;color:#333;letter-spacing:4px;text-transform:uppercase}.name-line{display:flex;align-items:center;gap:8px;margin:4px auto 6px;max-width:60%}.name-line::before,.name-line::after{content:'';flex:1;height:1px;background:linear-gradient(to right,transparent,${pc}60,transparent)}.name-line span{color:${pc};font-size:6pt}.title{font-size:9pt;color:#777;letter-spacing:3px;text-transform:uppercase;margin-bottom:6px}.contact-line{font-size:7.5pt;color:#888}.section{margin-bottom:8px}.section-title{font-size:7.5pt;font-weight:600;letter-spacing:2px;color:${pc};text-transform:uppercase;text-align:center;margin-bottom:5px}.section-title::before,.section-title::after{content:' \\00B7  ';color:${pc}50}.section-divider{height:1px;background:linear-gradient(to right,transparent,${pc}30,transparent);margin:0 auto 5px;max-width:80%}.item{margin-bottom:5px}.item-header{display:flex;justify-content:space-between;align-items:baseline}.item-title{font-weight:600;font-size:8.5pt;color:#333}.item-date{color:#999;font-size:7pt;font-style:italic}.item-subtitle{color:#777;font-size:7.5pt;font-style:italic}.item-desc{color:#555;font-size:7.5pt;margin-top:1px}.skills-list{display:flex;flex-wrap:wrap;justify-content:center;gap:5px}.skill-tag{padding:2px 8px;border:1px solid ${pc}40;border-radius:10px;font-size:7pt;color:${pc};background:${pc}08}`;
+
+    case 'tech':
+      return base + getPhotoStyles(profile, 42, true) + `.cv-container{width:8.5in;min-height:11in;background:#fafbfc}.header{background:#1a1a2e;color:#e0e0e0;padding:12px 18px;display:flex;align-items:center;gap:12px}.header-info{flex:1}.name{font-size:14pt;font-weight:700;color:#00d4ff;letter-spacing:1px}.name::before{content:'> ';color:#00d4ff60}.title{font-size:8.5pt;color:#a0a0b0;margin-top:1px}.contact-line{font-size:7pt;color:#808090;display:flex;gap:8px;flex-wrap:wrap;margin-top:2px}.section{margin-bottom:7px;padding:0 14px}.section-title{font-size:8pt;font-weight:700;color:#1a1a2e;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;padding-bottom:2px;border-bottom:2px solid #00d4ff;display:flex;align-items:center;gap:6px}.section-title::before{content:'//';color:#00d4ff80;font-family:'Courier New',monospace}.item{margin-bottom:4px;border-left:2px solid #00d4ff30;padding-left:8px}.item-header{display:flex;justify-content:space-between;align-items:baseline}.item-title{font-weight:700;font-size:8.5pt;color:#1a1a2e}.item-date{color:#999;font-size:7pt;font-family:'Courier New',monospace}.item-subtitle{color:#666;font-size:7.5pt}.item-desc{color:#555;font-size:7.5pt;margin-top:1px}.skills-grid{display:flex;flex-wrap:wrap;gap:3px}.skill-tag{padding:2px 6px;background:#1a1a2e;color:#00d4ff;border-radius:2px;font-size:7pt;font-family:'Courier New',monospace}.cert-item{font-size:7.5pt;margin-bottom:2px;font-family:'Courier New',monospace}.tech-bar{display:flex;align-items:center;gap:3px;margin-bottom:3px}.tech-bar-name{font-size:7pt;width:65px;font-family:'Courier New',monospace}.tech-bar-track{width:50px;height:3px;background:#e0e0e0;border-radius:1px;overflow:hidden}.tech-bar-fill{height:100%;background:linear-gradient(90deg,#00d4ff,#0099cc);border-radius:1px}`;
+
+    case 'infographic':
+      return base + getPhotoStyles(profile, 48, true) + `.cv-container{width:8.5in;min-height:11in;padding:0.25in}.header{display:flex;align-items:center;gap:14px;margin-bottom:10px;padding-bottom:10px;border-bottom:3px solid ${pc};position:relative}.header::after{content:'';position:absolute;bottom:-3px;left:0;width:60px;height:3px;background:${sc}}.header-info{flex:1}.name{font-size:16pt;font-weight:700;color:${pc}}.title{font-size:9pt;color:#555;margin-top:1px}.contact-row{display:flex;gap:8px;font-size:7pt;color:#777;margin-top:2px;flex-wrap:wrap}.contact-icon{color:${pc};font-weight:700;margin-right:2px}.cols{display:flex;gap:12px}.col-main{flex:3}.col-side{flex:2;background:${pc}08;border-radius:6px;padding:10px}.section{margin-bottom:8px}.section-title{font-size:8pt;font-weight:700;color:${pc};margin-bottom:4px;display:flex;align-items:center;gap:4px}.section-title::before{content:'';display:inline-block;width:14px;height:14px;background:${pc}15;border-radius:50%;text-align:center;line-height:14px;font-size:7pt}.item{margin-bottom:4px;padding-left:8px;border-left:2px solid ${pc}30}.item-title{font-weight:700;font-size:8pt}.item-subtitle{color:#666;font-size:7pt}.item-date{color:#999;font-size:6.5pt}.item-desc{color:#555;font-size:7pt;margin-top:1px}.stat-box{display:inline-block;text-align:center;padding:4px 8px;margin:2px;border-radius:4px;background:${pc}12}.stat-num{font-size:12pt;font-weight:700;color:${pc}}.stat-label{font-size:6pt;color:#666;text-transform:uppercase}.skill-bar-wrap{margin-bottom:3px}.skill-bar-name{font-size:7pt;display:flex;justify-content:space-between;margin-bottom:1px}.skill-bar-track{height:4px;background:#e8e8e8;border-radius:2px;overflow:hidden}.skill-bar-fill{height:100%;background:linear-gradient(90deg,${pc},${sc});border-radius:2px}.cert-item{font-size:7pt;margin-bottom:2px}.cert-item strong{color:${pc}}`;
+
+    case 'bold':
+      return base + getPhotoStyles(profile, 50) + `.cv-container{width:8.5in;min-height:11in;padding:0}.hero{background:${pc};color:#fff;padding:24px 28px 18px;text-align:center}.name{font-size:24pt;font-weight:900;letter-spacing:1px;text-transform:uppercase}.title{font-size:10pt;font-weight:300;opacity:0.9;margin-top:2px;letter-spacing:2px;text-transform:uppercase}.contact-line{font-size:7.5pt;opacity:0.8;margin-top:6px}.body{padding:14px 24px}.section{margin-bottom:9px}.section-title{font-size:11pt;font-weight:900;color:${pc};text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;padding-bottom:2px;border-bottom:3px solid ${pc}}.item{margin-bottom:5px}.item-header{display:flex;justify-content:space-between;align-items:baseline}.item-title{font-weight:800;font-size:9.5pt;color:#222}.item-date{color:#999;font-size:7pt;font-weight:700}.item-subtitle{color:${pc};font-size:8pt;font-weight:600;margin-top:1px}.item-desc{color:#555;font-size:7.5pt;margin-top:1px}.skills-grid{display:flex;flex-wrap:wrap;gap:4px}.skill-tag{padding:3px 8px;background:${pc};color:#fff;border-radius:3px;font-size:7pt;font-weight:700;letter-spacing:0.5px}.cert-item{font-size:7.5pt;margin-bottom:2px}.cert-item strong{font-weight:800;color:${pc}}`;
+
+    case 'compact':
+      return base + getPhotoStyles(profile, 36, true) + `.cv-container{width:8.5in;min-height:11in;font-size:7.5pt}.header{display:flex;align-items:center;gap:10px;margin-bottom:6px;padding-bottom:6px;border-bottom:1.5px solid ${pc}}.header-info{flex:1}.name{font-size:13pt;font-weight:700;color:${pc}}.title{font-size:8pt;color:#555}.contact-line{font-size:6.5pt;color:#888}.cols{display:flex;gap:10px}.col-left{flex:3}.col-right{flex:2;border-left:1px solid #e8e8e8;padding-left:10px}.section{margin-bottom:5px}.section-title{font-size:7.5pt;font-weight:700;color:${pc};text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;border-bottom:0.5px solid ${pc}40;padding-bottom:1px}.item{margin-bottom:3px}.item-title{font-weight:700;font-size:7.5pt}.item-subtitle{color:#666;font-size:6.5pt}.item-date{color:#999;font-size:6pt}.item-desc{color:#555;font-size:6.5pt;margin-top:0.5px}.skill-mini{display:flex;justify-content:space-between;font-size:6.5pt;margin-bottom:2px}.skill-track{height:2px;background:#eee;border-radius:1px;overflow:hidden}.skill-fill{height:100%;background:${pc};border-radius:1px}.cert-item{font-size:6.5pt;margin-bottom:1px}.proj-item{font-size:6.5pt;margin-bottom:2px}.proj-item strong{font-weight:600}`;
+
+    case 'professional':
+      return base + getPhotoStyles(profile, 50) + `.cv-container{width:8.5in;min-height:11in;padding:0.3in 0.4in}.header{text-align:center;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid #333}.name{font-size:18pt;font-weight:700;color:#222;letter-spacing:1px}.title{font-size:9.5pt;color:${pc};font-weight:500;margin-top:2px;letter-spacing:1px}.contact-line{font-size:7.5pt;color:#666;margin-top:4px}.section{margin-bottom:8px}.section-title{font-size:8.5pt;font-weight:700;color:#333;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;display:flex;align-items:center;gap:8px}.section-title::after{content:'';flex:1;height:0.5px;background:#ccc}.item{margin-bottom:4px}.item-header{display:flex;justify-content:space-between;align-items:baseline}.item-title{font-weight:600;font-size:8.5pt;color:#333}.item-date{color:#999;font-size:7pt}.item-subtitle{color:${pc};font-size:7.5pt;font-weight:500}.item-desc{color:#555;font-size:7.5pt;margin-top:1px}.skills-list{display:flex;flex-wrap:wrap;gap:5px}.skill-tag{padding:2px 8px;border:1px solid ${pc}40;border-radius:3px;font-size:7pt;color:#444;background:${pc}08}.cert-item{font-size:7.5pt;margin-bottom:2px}.cert-item strong{color:#333;font-weight:600}`;
+
+    default: // classic
+      return base + getPhotoStyles(profile, 56) + `.cv-container{width:8.5in;min-height:11in;margin:0 auto;padding:0.35in 0.4in}.header{text-align:center;border-bottom:2px solid ${pc};padding-bottom:10px;margin-bottom:10px}.name{font-size:18pt;font-weight:700;color:${pc};margin-bottom:2px;letter-spacing:0.5px}.title{font-size:10pt;color:#666;margin-bottom:6px}.contact-info{display:flex;justify-content:center;gap:12px;font-size:8pt;color:#888;flex-wrap:wrap}.section{margin-bottom:8px}.section-title{font-size:9pt;font-weight:700;color:${pc};border-bottom:1px solid ${pc};padding-bottom:2px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px}.item{margin-bottom:5px}.item-header{display:flex;justify-content:space-between;align-items:baseline}.item-title{font-weight:700;font-size:8.5pt}.item-subtitle{color:#666;font-size:7.5pt}.item-date{color:#999;font-size:7pt}.item-desc{color:#555;font-size:7.5pt;margin-top:1px}.skills-grid{display:flex;flex-wrap:wrap;gap:4px 12px}.skill-item{display:flex;align-items:center;gap:4px}.skill-bar{width:45px;height:3px;background:#eee;border-radius:1.5px}.skill-fill{height:100%;background:${pc};border-radius:1.5px}.cert-item{font-size:7.5pt;margin-bottom:2px}`;
   }
 }
 
 function generateCVContent(profile: any, template: string, sections: any): string {
   const work = profile.experiences?.filter((e: any) => e.type === 'work') || [];
   const edu = profile.experiences?.filter((e: any) => e.type === 'education') || [];
-  const photoHtml = profile.photo 
-    ? `<div class="photo-circle"><img src="${profile.photo}" alt="${profile.name}"></div>`
-    : `<div class="photo-circle">${profile.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}</div>`;
-  
-  if (template === 'modern') {
-    return `<div class="cv-container">
-      <div class="sidebar">${photoHtml}<div class="name">${profile.name}</div><div class="title">${profile.title}</div>
-        ${sections.contact ? `<div class="sidebar-section"><div class="sidebar-title">Contacto</div>${profile.email ? `<div class="contact-item">📧 ${profile.email}</div>` : ''}${profile.phone ? `<div class="contact-item">📱 ${profile.phone}</div>` : ''}${profile.location ? `<div class="contact-item">📍 ${profile.location}</div>` : ''}</div>` : ''}
-        ${sections.skills && profile.skills?.length ? `<div class="sidebar-section"><div class="sidebar-title">Habilidades</div>${profile.skills.map((s: any) => `<div class="skill-item"><div class="skill-name"><span>${s.name}</span><span>${s.level}%</span></div><div class="skill-bar"><div class="skill-fill" style="width:${s.level}%"></div></div></div>`).join('')}</div>` : ''}
-        ${sections.certificates && profile.certificates?.length ? `<div class="sidebar-section"><div class="sidebar-title">Certificados</div>${profile.certificates.map((c: any) => `<div class="contact-item"><strong>${c.title}</strong><br>${c.institution || ''} ${c.issueDate ? `(${c.issueDate})` : ''}</div>`).join('')}</div>` : ''}
-      </div>
-      <div class="main">
-        ${profile.bio ? `<div class="section"><div class="section-title">Perfil</div><p style="font-size:9pt;color:#555">${profile.bio}</p></div>` : ''}
-        ${sections.experience && work.length ? `<div class="section"><div class="section-title">Experiencia</div>${work.map((e: any) => `<div class="item"><div class="item-title">${e.title}</div><div class="item-subtitle">${e.company} | ${e.startDate} - ${e.endDate || 'Presente'}</div></div>`).join('')}</div>` : ''}
-        ${sections.experience && edu.length ? `<div class="section"><div class="section-title">Educación</div>${edu.map((e: any) => `<div class="item"><div class="item-title">${e.title}</div><div class="item-subtitle">${e.company} | ${e.startDate} - ${e.endDate || 'Presente'}</div></div>`).join('')}</div>` : ''}
-        ${sections.projects && profile.projects?.length ? `<div class="section"><div class="section-title">Proyectos</div>${profile.projects.slice(0, 4).map((p: any) => `<div class="item"><div class="item-title">${p.title}</div><div class="item-subtitle">${p.technologies || ''}</div></div>`).join('')}</div>` : ''}
-      </div>
-    </div>`;
+  const ph = getPhotoHtml(profile);
+  const pc = profile.primaryColor || '#2563eb';
+
+  // Helper: contact items for sidebar
+  const contactHtml = (style: 'sidebar' | 'row' | 'inline' = 'sidebar') => {
+    const items = [
+      profile.email ? `📧 ${profile.email}` : '',
+      profile.phone ? `📱 ${profile.phone}` : '',
+      profile.location ? `📍 ${profile.location}` : '',
+      profile.website ? `🌐 ${profile.website}` : '',
+    ].filter(Boolean);
+    if (style === 'row') return `<div class="contact-info">${items.join('')}</div>`;
+    if (style === 'inline') return `<div class="contact-line">${items.join(' &bull; ')}</div>`;
+    return items.map(i => `<div class="contact-item">${i}</div>`).join('');
+  };
+
+  // Helper: experience items
+  const workHtml = (showDesc: boolean = true) => work.map((e: any) => `<div class="item"><div class="item-header"><div class="item-title">${e.title}</div><div class="item-date">${e.startDate} - ${e.endDate || 'Presente'}</div></div><div class="item-subtitle">${e.company}${e.location ? ` · ${e.location}` : ''}</div>${showDesc && e.description ? `<div class="item-desc">${e.description}</div>` : ''}</div>`).join('');
+
+  // Helper: education items
+  const eduHtml = () => edu.map((e: any) => `<div class="item"><div class="item-header"><div class="item-title">${e.title}</div><div class="item-date">${e.startDate} - ${e.endDate || 'Presente'}</div></div><div class="item-subtitle">${e.company}</div></div>`).join('');
+
+  // Helper: projects items
+  const projHtml = (max: number = 3) => (profile.projects || []).slice(0, max).map((p: any) => `<div class="item"><div class="item-title">${p.title}</div>${p.technologies ? `<div class="item-subtitle">${p.technologies}</div>` : ''}</div>`).join('');
+
+  // Helper: certificates items
+  const certHtml = (style: 'normal' | 'tag' | 'simple' = 'normal') => {
+    const certs = profile.certificates || [];
+    if (style === 'tag') return `<div class="skills-list">${certs.map((c: any) => `<span class="skill-tag">${c.title}</span>`).join('')}</div>`;
+    if (style === 'simple') return certs.map((c: any) => `<div class="cert-item"><strong>${c.title}</strong> ${c.institution ? `- ${c.institution}` : ''} ${c.issueDate ? `(${c.issueDate})` : ''}</div>`).join('');
+    return certs.map((c: any) => `<div class="item"><div class="item-title">${c.title}</div><div class="item-subtitle">${c.institution || ''} ${c.issueDate ? `· ${c.issueDate}` : ''}</div></div>`).join('');
+  };
+
+  switch(template) {
+    case 'modern':
+      return `<div class="cv-container">
+  <div class="sidebar">${ph}<div class="name">${profile.name}</div><div class="title">${profile.title}</div>
+    ${sections.contact ? `<div class="sidebar-section"><div class="sidebar-title">Contacto</div>${contactHtml()}</div>` : ''}
+    ${sections.skills && profile.skills?.length ? `<div class="sidebar-section"><div class="sidebar-title">Habilidades</div>${profile.skills.map((s: any) => `<div class="skill-item"><div class="skill-name"><span>${s.name}</span><span>${s.level}%</span></div><div class="skill-bar"><div class="skill-fill" style="width:${s.level}%"></div></div></div>`).join('')}</div>` : ''}
+    ${sections.certificates && profile.certificates?.length ? `<div class="sidebar-section"><div class="sidebar-title">Certificados</div>${certHtml('simple')}</div>` : ''}
+  </div>
+  <div class="main">
+    ${profile.bio ? `<div class="section"><div class="section-title">Perfil</div><p style="font-size:8pt;color:#555">${profile.bio}</p></div>` : ''}
+    ${sections.experience && work.length ? `<div class="section"><div class="section-title">Experiencia</div>${workHtml()}</div>` : ''}
+    ${sections.experience && edu.length ? `<div class="section"><div class="section-title">Educación</div>${eduHtml()}</div>` : ''}
+    ${sections.projects && profile.projects?.length ? `<div class="section"><div class="section-title">Proyectos</div>${projHtml(4)}</div>` : ''}
+  </div>
+</div>`;
+
+    case 'creative':
+      return `<div class="cv-container">
+  <div class="header">${ph}<div class="header-info"><div class="name">${profile.name}</div><div class="title">${profile.title}</div>${sections.contact ? `<div class="contact-line">${[profile.email, profile.phone, profile.location].filter(Boolean).join(' · ')}</div>` : ''}</div></div>
+  ${profile.bio ? `<div class="section"><p style="font-size:8pt;color:#555;text-align:center">${profile.bio}</p></div>` : ''}
+  ${sections.experience && work.length ? `<div class="section"><div class="section-title">Experiencia</div><div class="timeline">${work.map((e: any) => `<div class="item"><div class="item-title">${e.title}</div><div class="item-subtitle">${e.company} · ${e.startDate} - ${e.endDate || 'Presente'}</div></div>`).join('')}</div></div>` : ''}
+  ${sections.experience && edu.length ? `<div class="section"><div class="section-title">Educación</div><div class="timeline">${edu.map((e: any) => `<div class="item"><div class="item-title">${e.title}</div><div class="item-subtitle">${e.company} · ${e.startDate} - ${e.endDate || 'Presente'}</div></div>`).join('')}</div></div>` : ''}
+  ${sections.skills && profile.skills?.length ? `<div class="section"><div class="section-title">Habilidades</div><div class="skills-grid">${profile.skills.map((s: any) => `<div class="skill-item"><div class="skill-circle">${s.level}%</div><div class="skill-name">${s.name}</div></div>`).join('')}</div></div>` : ''}
+  ${sections.projects && profile.projects?.length ? `<div class="section"><div class="section-title">Proyectos</div>${projHtml(3)}</div>` : ''}
+  ${sections.certificates && profile.certificates?.length ? `<div class="section"><div class="section-title">Certificados</div>${certHtml('tag')}</div>` : ''}
+</div>`;
+
+    case 'minimal':
+      return `<div class="cv-container">
+  <div class="header">${ph}<div class="name">${profile.name.toUpperCase()}</div><div class="title">${profile.title}</div>${sections.contact ? `<div class="contact-line">${[profile.email, profile.phone, profile.location].filter(Boolean).join(' &middot; ')}</div>` : ''}</div>
+  ${profile.bio ? `<div class="section"><p style="color:#555;text-align:center;font-size:8.5pt">${profile.bio}</p></div>` : ''}
+  ${sections.experience && work.length ? `<div class="section"><div class="section-title">Experiencia</div>${workHtml()}</div>` : ''}
+  ${sections.experience && edu.length ? `<div class="section"><div class="section-title">Educación</div>${eduHtml()}</div>` : ''}
+  ${sections.skills && profile.skills?.length ? `<div class="section"><div class="section-title">Habilidades</div><div class="skills-list">${profile.skills.map((s: any) => `<span class="skill-tag">${s.name}</span>`).join('')}</div></div>` : ''}
+  ${sections.projects && profile.projects?.length ? `<div class="section"><div class="section-title">Proyectos</div>${projHtml(3)}</div>` : ''}
+  ${sections.certificates && profile.certificates?.length ? `<div class="section"><div class="section-title">Certificaciones</div>${certHtml('tag')}</div>` : ''}
+</div>`;
+
+    case 'executive':
+      return `<div class="cv-container">
+  <div class="header-band">${ph}<div class="header-text"><div class="name">${profile.name}</div><div class="title">${profile.title}</div>${sections.contact ? `<div class="contact-row">${[profile.email ? `📧 ${profile.email}` : '', profile.phone ? `📱 ${profile.phone}` : '', profile.location ? `📍 ${profile.location}` : ''].filter(Boolean).join('')}</div>` : ''}</div></div>
+  <div class="body-cols">
+    <div class="col-left">
+      ${profile.bio ? `<div class="section"><div class="section-title">Perfil Profesional</div><p style="font-size:7.5pt;color:#555">${profile.bio}</p></div>` : ''}
+      ${sections.experience && work.length ? `<div class="section"><div class="section-title">Experiencia</div>${workHtml()}</div>` : ''}
+      ${sections.experience && edu.length ? `<div class="section"><div class="section-title">Educación</div>${eduHtml()}</div>` : ''}
+      ${sections.projects && profile.projects?.length ? `<div class="section"><div class="section-title">Proyectos</div>${projHtml(3)}</div>` : ''}
+    </div>
+    <div class="col-right">
+      ${sections.skills && profile.skills?.length ? `<div class="section"><div class="section-title">Habilidades</div>${profile.skills.map((s: any) => `<div class="skill-item"><div class="skill-name"><span>${s.name}</span><span>${s.level}%</span></div><div class="skill-bar"><div class="skill-fill" style="width:${s.level}%"></div></div></div>`).join('')}</div>` : ''}
+      ${sections.certificates && profile.certificates?.length ? `<div class="section"><div class="section-title">Certificados</div>${certHtml('simple')}</div>` : ''}
+    </div>
+  </div>
+</div>`;
+
+    case 'corporate':
+      return `<div class="cv-container">
+  <div class="header">${ph}<div class="header-main"><div class="name">${profile.name}</div><div class="title">${profile.title}</div>${sections.contact ? `<div class="contact-info">${[profile.email ? `📧 ${profile.email}` : '', profile.phone ? `📱 ${profile.phone}` : '', profile.location ? `📍 ${profile.location}` : ''].filter(Boolean).join('')}</div>` : ''}</div></div>
+  ${profile.bio ? `<div class="section"><div class="section-title">Perfil Profesional</div><p style="font-size:7.5pt;color:#555">${profile.bio}</p></div>` : ''}
+  ${sections.experience && work.length ? `<div class="section"><div class="section-title">Experiencia Laboral</div>${workHtml()}</div>` : ''}
+  ${sections.experience && edu.length ? `<div class="section"><div class="section-title">Educación</div>${eduHtml()}</div>` : ''}
+  ${sections.skills && profile.skills?.length ? `<div class="section"><div class="section-title">Habilidades</div><div class="skills-grid">${profile.skills.map((s: any) => `<span class="skill-tag">${s.name}</span>`).join('')}</div></div>` : ''}
+  ${sections.projects && profile.projects?.length ? `<div class="section"><div class="section-title">Proyectos</div>${projHtml(3)}</div>` : ''}
+  ${sections.certificates && profile.certificates?.length ? `<div class="section"><div class="section-title">Certificaciones</div>${certHtml('simple')}</div>` : ''}
+</div>`;
+
+    case 'elegant':
+      return `<div class="cv-container"><div class="inner">
+  <div class="header"><div class="name">${profile.name.toUpperCase()}</div><div class="name-line"><span>&#9670;</span></div><div class="title">${profile.title}</div>${sections.contact ? `<div class="contact-line">${[profile.email, profile.phone, profile.location].filter(Boolean).join(' &middot; ')}</div>` : ''}</div>
+  ${profile.bio ? `<div class="section"><div class="section-divider"></div><p style="font-size:8pt;color:#555;text-align:center;font-style:italic">${profile.bio}</p></div>` : ''}
+  ${sections.experience && work.length ? `<div class="section"><div class="section-title">Experiencia</div><div class="section-divider"></div>${workHtml()}</div>` : ''}
+  ${sections.experience && edu.length ? `<div class="section"><div class="section-title">Educación</div><div class="section-divider"></div>${eduHtml()}</div>` : ''}
+  ${sections.skills && profile.skills?.length ? `<div class="section"><div class="section-title">Habilidades</div><div class="section-divider"></div><div class="skills-list">${profile.skills.map((s: any) => `<span class="skill-tag">${s.name}</span>`).join('')}</div></div>` : ''}
+  ${sections.projects && profile.projects?.length ? `<div class="section"><div class="section-title">Proyectos</div><div class="section-divider"></div>${projHtml(3)}</div>` : ''}
+  ${sections.certificates && profile.certificates?.length ? `<div class="section"><div class="section-title">Certificaciones</div><div class="section-divider"></div>${certHtml('tag')}</div>` : ''}
+</div></div>`;
+
+    case 'tech':
+      return `<div class="cv-container">
+  <div class="header">${ph}<div class="header-info"><div class="name">${profile.name}</div><div class="title">${profile.title}</div>${sections.contact ? `<div class="contact-line">${[profile.email ? `📧 ${profile.email}` : '', profile.phone ? `📱 ${profile.phone}` : '', profile.location ? `📍 ${profile.location}` : ''].filter(Boolean).join('')}</div>` : ''}</div></div>
+  ${profile.bio ? `<div class="section"><div class="section-title">about()</div><p style="font-size:7.5pt;color:#555">${profile.bio}</p></div>` : ''}
+  ${sections.experience && work.length ? `<div class="section"><div class="section-title">experience()</div>${workHtml()}</div>` : ''}
+  ${sections.experience && edu.length ? `<div class="section"><div class="section-title">education()</div>${eduHtml()}</div>` : ''}
+  ${sections.skills && profile.skills?.length ? `<div class="section"><div class="section-title">skills()</div><div class="skills-grid">${profile.skills.map((s: any) => `<span class="skill-tag">${s.name}</span>`).join('')}</div></div>` : ''}
+  ${sections.projects && profile.projects?.length ? `<div class="section"><div class="section-title">projects()</div>${projHtml(4)}</div>` : ''}
+  ${sections.certificates && profile.certificates?.length ? `<div class="section"><div class="section-title">certifications()</div>${certHtml('simple')}</div>` : ''}
+</div>`;
+
+    case 'infographic':
+      return `<div class="cv-container">
+  <div class="header">${ph}<div class="header-info"><div class="name">${profile.name}</div><div class="title">${profile.title}</div>${sections.contact ? `<div class="contact-row">${[profile.email ? `<span class="contact-icon">✉</span>${profile.email}` : '', profile.phone ? `<span class="contact-icon">☎</span>${profile.phone}` : '', profile.location ? `<span class="contact-icon">⌂</span>${profile.location}` : ''].filter(Boolean).join('')}</div>` : ''}</div></div>
+  <div style="margin-bottom:8px;display:flex;gap:4px;flex-wrap:wrap">${[
+    work.length ? `<div class="stat-box"><div class="stat-num">${work.length}</div><div class="stat-label">Años Exp.</div></div>` : '',
+    profile.skills?.length ? `<div class="stat-box"><div class="stat-num">${profile.skills.length}</div><div class="stat-label">Habilidades</div></div>` : '',
+    profile.projects?.length ? `<div class="stat-box"><div class="stat-num">${profile.projects.length}</div><div class="stat-label">Proyectos</div></div>` : '',
+    profile.certificates?.length ? `<div class="stat-box"><div class="stat-num">${profile.certificates.length}</div><div class="stat-label">Certificados</div></div>` : '',
+  ].filter(Boolean).join('')}</div>
+  <div class="cols">
+    <div class="col-main">
+      ${profile.bio ? `<div class="section"><div class="section-title">📋 Perfil</div><p style="font-size:7.5pt;color:#555">${profile.bio}</p></div>` : ''}
+      ${sections.experience && work.length ? `<div class="section"><div class="section-title">💼 Experiencia</div>${workHtml()}</div>` : ''}
+      ${sections.experience && edu.length ? `<div class="section"><div class="section-title">🎓 Educación</div>${eduHtml()}</div>` : ''}
+      ${sections.projects && profile.projects?.length ? `<div class="section"><div class="section-title">📁 Proyectos</div>${projHtml(3)}</div>` : ''}
+    </div>
+    <div class="col-side">
+      ${sections.skills && profile.skills?.length ? `<div class="section"><div class="section-title">💻 Habilidades</div>${profile.skills.map((s: any) => `<div class="skill-bar-wrap"><div class="skill-bar-name"><span>${s.name}</span><span>${s.level}%</span></div><div class="skill-bar-track"><div class="skill-bar-fill" style="width:${s.level}%"></div></div></div>`).join('')}</div>` : ''}
+      ${sections.certificates && profile.certificates?.length ? `<div class="section"><div class="section-title">🏆 Certificados</div>${certHtml('simple')}</div>` : ''}
+    </div>
+  </div>
+</div>`;
+
+    case 'bold':
+      return `<div class="cv-container">
+  <div class="hero">${ph ? `<div style="margin-bottom:8px">${ph.replace('margin:0 auto 8px','margin:0 auto 8px').replace('margin:0','margin:0 auto 8px')}</div>` : ''}<div class="name">${profile.name.toUpperCase()}</div><div class="title">${profile.title}</div>${sections.contact ? `<div class="contact-line">${[profile.email, profile.phone, profile.location].filter(Boolean).join(' &bull; ')}</div>` : ''}</div>
+  <div class="body">
+    ${profile.bio ? `<div class="section"><div class="section-title">Perfil</div><p style="font-size:8pt;color:#555">${profile.bio}</p></div>` : ''}
+    ${sections.experience && work.length ? `<div class="section"><div class="section-title">Experiencia</div>${workHtml()}</div>` : ''}
+    ${sections.experience && edu.length ? `<div class="section"><div class="section-title">Educación</div>${eduHtml()}</div>` : ''}
+    ${sections.skills && profile.skills?.length ? `<div class="section"><div class="section-title">Habilidades</div><div class="skills-grid">${profile.skills.map((s: any) => `<span class="skill-tag">${s.name}</span>`).join('')}</div></div>` : ''}
+    ${sections.projects && profile.projects?.length ? `<div class="section"><div class="section-title">Proyectos</div>${projHtml(4)}</div>` : ''}
+    ${sections.certificates && profile.certificates?.length ? `<div class="section"><div class="section-title">Certificaciones</div>${certHtml('simple')}</div>` : ''}
+  </div>
+</div>`;
+
+    case 'compact':
+      return `<div class="cv-container">
+  <div class="header">${ph}<div class="header-info"><div class="name">${profile.name}</div><div class="title">${profile.title}</div>${sections.contact ? `<div class="contact-line">${[profile.email, profile.phone, profile.location].filter(Boolean).join(' &middot; ')}</div>` : ''}</div></div>
+  <div class="cols">
+    <div class="col-left">
+      ${profile.bio ? `<div class="section"><div class="section-title">Perfil</div><p style="font-size:6.5pt;color:#555">${profile.bio}</p></div>` : ''}
+      ${sections.experience && work.length ? `<div class="section"><div class="section-title">Experiencia</div>${workHtml()}</div>` : ''}
+      ${sections.experience && edu.length ? `<div class="section"><div class="section-title">Educación</div>${eduHtml()}</div>` : ''}
+      ${sections.projects && profile.projects?.length ? `<div class="section"><div class="section-title">Proyectos</div>${(profile.projects || []).slice(0, 5).map((p: any) => `<div class="proj-item"><strong>${p.title}</strong>${p.technologies ? ` - ${p.technologies}` : ''}</div>`).join('')}</div>` : ''}
+    </div>
+    <div class="col-right">
+      ${sections.skills && profile.skills?.length ? `<div class="section"><div class="section-title">Habilidades</div>${profile.skills.map((s: any) => `<div class="skill-mini"><span>${s.name}</span><span>${s.level}%</span></div><div class="skill-track"><div class="skill-fill" style="width:${s.level}%"></div></div>`).join('')}</div>` : ''}
+      ${sections.certificates && profile.certificates?.length ? `<div class="section"><div class="section-title">Certificados</div>${certHtml('simple')}</div>` : ''}
+    </div>
+  </div>
+</div>`;
+
+    case 'professional':
+      return `<div class="cv-container">
+  <div class="header"><div class="name">${profile.name}</div><div class="title">${profile.title}</div>${sections.contact ? `<div class="contact-line">${[profile.email, profile.phone, profile.location].filter(Boolean).join(' &middot; ')}</div>` : ''}</div>
+  ${profile.bio ? `<div class="section"><div class="section-title">Resumen Profesional</div><p style="font-size:7.5pt;color:#555">${profile.bio}</p></div>` : ''}
+  ${sections.experience && work.length ? `<div class="section"><div class="section-title">Experiencia Profesional</div>${workHtml()}</div>` : ''}
+  ${sections.experience && edu.length ? `<div class="section"><div class="section-title">Formación Académica</div>${eduHtml()}</div>` : ''}
+  ${sections.skills && profile.skills?.length ? `<div class="section"><div class="section-title">Competencias</div><div class="skills-list">${profile.skills.map((s: any) => `<span class="skill-tag">${s.name}</span>`).join('')}</div></div>` : ''}
+  ${sections.projects && profile.projects?.length ? `<div class="section"><div class="section-title">Proyectos Relevantes</div>${projHtml(4)}</div>` : ''}
+  ${sections.certificates && profile.certificates?.length ? `<div class="section"><div class="section-title">Certificaciones</div>${certHtml('simple')}</div>` : ''}
+</div>`;
+
+    default: // classic
+      return `<div class="cv-container">
+  <div class="header">${ph}<div class="name">${profile.name}</div><div class="title">${profile.title}</div>${sections.contact ? `<div class="contact-info">${[profile.email ? `📧 ${profile.email}` : '', profile.phone ? `📱 ${profile.phone}` : '', profile.location ? `📍 ${profile.location}` : ''].filter(Boolean).join('')}</div>` : ''}</div>
+  ${profile.bio ? `<div class="section"><div class="section-title">Perfil Profesional</div><p style="font-size:8pt;color:#555">${profile.bio}</p></div>` : ''}
+  ${sections.experience && work.length ? `<div class="section"><div class="section-title">Experiencia Laboral</div>${workHtml()}</div>` : ''}
+  ${sections.experience && edu.length ? `<div class="section"><div class="section-title">Educación</div>${eduHtml()}</div>` : ''}
+  ${sections.skills && profile.skills?.length ? `<div class="section"><div class="section-title">Habilidades</div><div class="skills-grid">${profile.skills.map((s: any) => `<div class="skill-item"><span style="font-size:7.5pt;width:70px">${s.name}</span><div class="skill-bar"><div class="skill-fill" style="width:${s.level}%"></div></div><span style="font-size:7pt;color:#888">${s.level}%</span></div>`).join('')}</div></div>` : ''}
+  ${sections.projects && profile.projects?.length ? `<div class="section"><div class="section-title">Proyectos Destacados</div>${projHtml(3)}</div>` : ''}
+  ${sections.certificates && profile.certificates?.length ? `<div class="section"><div class="section-title">Certificaciones</div>${certHtml('normal')}</div>` : ''}
+</div>`;
   }
-  if (template === 'creative') {
-    return `<div class="cv-container">
-      <div class="header">${photoHtml}<div class="header-info"><div class="name">${profile.name}</div><div class="title">${profile.title}</div><div class="contact-line">${[profile.email, profile.phone, profile.location].filter(Boolean).join(' • ')}</div></div></div>
-      ${profile.bio ? `<div class="section"><p style="font-size:9pt;color:#555;text-align:center">${profile.bio}</p></div>` : ''}
-      ${sections.experience && work.length ? `<div class="section"><div class="section-title">Experiencia</div><div class="timeline">${work.map((e: any) => `<div class="item"><div class="item-title">${e.title}</div><div class="item-subtitle">${e.company} • ${e.startDate} - ${e.endDate || 'Presente'}</div></div>`).join('')}</div></div>` : ''}
-      ${sections.experience && edu.length ? `<div class="section"><div class="section-title">Educación</div><div class="timeline">${edu.map((e: any) => `<div class="item"><div class="item-title">${e.title}</div><div class="item-subtitle">${e.company} • ${e.startDate} - ${e.endDate || 'Presente'}</div></div>`).join('')}</div></div>` : ''}
-      ${sections.skills && profile.skills?.length ? `<div class="section"><div class="section-title">Habilidades</div><div class="skills-grid">${profile.skills.map((s: any) => `<div class="skill-item"><div class="skill-circle">${s.level}%</div><div class="skill-name">${s.name}</div></div>`).join('')}</div></div>` : ''}
-    </div>`;
-  }
-  if (template === 'minimal') {
-    return `<div class="cv-container">
-      <div class="header">${photoHtml}<div class="name">${profile.name.toUpperCase()}</div><div class="title">${profile.title}</div><div class="contact-line">${[profile.email, profile.phone, profile.location].filter(Boolean).join('  •  ')}</div></div>
-      ${profile.bio ? `<div class="section"><p style="color:#555;text-align:center;font-size:10pt">${profile.bio}</p></div>` : ''}
-      ${sections.experience && work.length ? `<div class="section"><div class="section-title">Experiencia</div>${work.map((e: any) => `<div class="item"><div class="item-header"><div class="item-title">${e.title}</div><div class="item-date">${e.startDate} — ${e.endDate || 'Presente'}</div></div><div class="item-subtitle">${e.company}</div></div>`).join('')}</div>` : ''}
-      ${sections.experience && edu.length ? `<div class="section"><div class="section-title">Educación</div>${edu.map((e: any) => `<div class="item"><div class="item-header"><div class="item-title">${e.title}</div><div class="item-date">${e.startDate} — ${e.endDate || 'Presente'}</div></div><div class="item-subtitle">${e.company}</div></div>`).join('')}</div>` : ''}
-      ${sections.skills && profile.skills?.length ? `<div class="section"><div class="section-title">Habilidades</div><div class="skills-list">${profile.skills.map((s: any) => `<span class="skill-tag">${s.name}</span>`).join('')}</div></div>` : ''}
-    </div>`;
-  }
-  // Classic
-  return `<div class="cv-container">
-    <div class="header">${photoHtml}<div class="name">${profile.name}</div><div class="title">${profile.title}</div><div class="contact-info">${profile.email ? `<span>📧 ${profile.email}</span>` : ''}${profile.phone ? `<span>📱 ${profile.phone}</span>` : ''}${profile.location ? `<span>📍 ${profile.location}</span>` : ''}</div></div>
-    ${profile.bio ? `<div class="section"><div class="section-title">Perfil Profesional</div><p style="font-size:9pt;color:#555">${profile.bio}</p></div>` : ''}
-    ${sections.experience && work.length ? `<div class="section"><div class="section-title">Experiencia Laboral</div>${work.map((e: any) => `<div class="item"><div class="item-title">${e.title}</div><div class="item-subtitle">${e.company}${e.location ? ` • ${e.location}` : ''}</div><div class="item-date">${e.startDate} - ${e.endDate || 'Presente'}</div></div>`).join('')}</div>` : ''}
-    ${sections.experience && edu.length ? `<div class="section"><div class="section-title">Educación</div>${edu.map((e: any) => `<div class="item"><div class="item-title">${e.title}</div><div class="item-subtitle">${e.company}</div><div class="item-date">${e.startDate} - ${e.endDate || 'Presente'}</div></div>`).join('')}</div>` : ''}
-    ${sections.skills && profile.skills?.length ? `<div class="section"><div class="section-title">Habilidades</div><div class="skills-grid">${profile.skills.map((s: any) => `<div class="skill-item"><span style="font-size:9pt;width:80px">${s.name}</span><div class="skill-bar"><div class="skill-fill" style="width:${s.level}%"></div></div><span style="font-size:8pt;color:#888">${s.level}%</span></div>`).join('')}</div></div>` : ''}
-    ${sections.projects && profile.projects?.length ? `<div class="section"><div class="section-title">Proyectos Destacados</div>${profile.projects.slice(0, 3).map((p: any) => `<div class="item"><div class="item-title">${p.title}</div>${p.technologies ? `<div class="item-subtitle">${p.technologies}</div>` : ''}</div>`).join('')}</div>` : ''}
-    ${sections.certificates && profile.certificates?.length ? `<div class="section"><div class="section-title">Certificaciones</div>${profile.certificates.map((c: any) => `<div class="item"><div class="item-title">${c.title}</div><div class="item-subtitle">${c.institution || ''} ${c.issueDate ? `• ${c.issueDate}` : ''}</div></div>`).join('')}</div>` : ''}
-  </div>`;
 }
 
 export default function Home() {

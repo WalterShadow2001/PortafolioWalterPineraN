@@ -89,6 +89,7 @@ export async function getPortfolioData() {
     accentColor: p.accentColor,
     backgroundColor: p.backgroundColor,
     textColor: p.textColor,
+    theme: p.theme || 'default',
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,
     socialLinks: socialLinks.rows.map(row => ({

@@ -2,11 +2,32 @@ import { getDb, getPortfolioData } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyEditor } from '@/lib/auth/verify-editor';
 
+// Use dynamic rendering but allow short-lived caching
 export const dynamic = 'force-dynamic';
 
-// GET - Obtener todos los datos del portafolio (public, uses fast direct query)
+// In-memory cache for GET responses (fast reads)
+let cachedProfile: any = null;
+let cacheTimestamp = 0;
+const CACHE_TTL = 5000; // 5 seconds cache
+
+function invalidateCache() {
+  cachedProfile = null;
+  cacheTimestamp = 0;
+}
+
+// GET - Obtener todos los datos del portafolio (public, uses fast direct query with memory cache)
 export async function GET() {
   try {
+    // Check in-memory cache first
+    const now = Date.now();
+    if (cachedProfile && (now - cacheTimestamp) < CACHE_TTL) {
+      return NextResponse.json(cachedProfile, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=5, stale-while-revalidate=10',
+        },
+      });
+    }
+
     const profile = await getPortfolioData();
 
     if (!profile) {
@@ -34,10 +55,24 @@ export async function GET() {
           skills: { orderBy: { order: 'asc' } },
         },
       });
-      return NextResponse.json(newProfile);
+      cachedProfile = newProfile;
+      cacheTimestamp = now;
+      return NextResponse.json(newProfile, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=5, stale-while-revalidate=10',
+        },
+      });
     }
 
-    return NextResponse.json(profile);
+    // Update cache
+    cachedProfile = profile;
+    cacheTimestamp = now;
+
+    return NextResponse.json(profile, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=5, stale-while-revalidate=10',
+      },
+    });
   } catch (error) {
     console.error('Error fetching portfolio:', error);
     return NextResponse.json({ error: 'Error fetching portfolio' }, { status: 500 });
@@ -85,6 +120,9 @@ export async function PUT(request: NextRequest) {
         });
       }
     }
+
+    // Invalidate cache after mutation
+    invalidateCache();
 
     return NextResponse.json({ success: true, profile });
   } catch (error) {
