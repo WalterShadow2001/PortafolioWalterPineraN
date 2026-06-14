@@ -97,6 +97,14 @@ function PortfolioApp() {
     }
   }, [profile]);
 
+  // Set site URL for QR code (client-only)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setSiteUrl(window.location.origin);
+      setSiteHost(window.location.host);
+    }
+  }, []);
+
   // Apply theme CSS
   useEffect(() => {
     if (profile) {
@@ -141,6 +149,8 @@ function PortfolioApp() {
   }, []);
 
   const [loginLoading, setLoginLoading] = useState(false);
+  const [siteUrl, setSiteUrl] = useState('https://portafolio-walter-pineran.vercel.app');
+  const [siteHost, setSiteHost] = useState('portafolio-walter-pineran.vercel.app');
 
   const handleLogin = async () => {
     setLoginLoading(true);
@@ -856,7 +866,7 @@ function PortfolioApp() {
                   {/* QR Code */}
                   <div className="p-3 bg-white rounded-xl shadow-inner">
                     <QRCodeSVG 
-                      value={typeof window !== 'undefined' ? window.location.origin : `https://portafolio-walter-pineran.vercel.app`}
+                      value={siteUrl}
                       size={140}
                       bgColor="#ffffff"
                       fgColor={profile.primaryColor}
@@ -871,7 +881,7 @@ function PortfolioApp() {
                       Escanea para visitar
                     </p>
                     <p className="text-[10px] mt-1 font-mono" style={{ color: profile.textColor, opacity: 0.4 }}>
-                      {typeof window !== 'undefined' ? window.location.host : 'portafolio-walter-pineran.vercel.app'}
+                      {siteHost}
                     </p>
                   </div>
                 </div>
