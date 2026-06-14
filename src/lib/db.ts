@@ -8,8 +8,8 @@ const globalForPrisma = globalThis as unknown as {
 
 function createPrismaClient() {
   const libsql = createClient({
-    url: process.env.DATABASE_URL!,
-    authToken: process.env.DATABASE_AUTH_TOKEN!,
+    url: process.env.DATABASE_URL ?? 'file:./dev.db',
+    authToken: process.env.DATABASE_AUTH_TOKEN ?? '',
   })
 
   const adapter = new PrismaLibSql(libsql)
@@ -19,10 +19,6 @@ function createPrismaClient() {
   })
 }
 
-// Only create the client if we have the required env vars
-// During build time, env vars may not be available
-export const db = globalForPrisma.prisma ?? (
-  process.env.DATABASE_URL ? createPrismaClient() : (undefined as unknown as PrismaClient)
-)
+export const db = globalForPrisma.prisma ?? createPrismaClient()
 
-if (process.env.NODE_ENV !== 'production' && process.env.DATABASE_URL) globalForPrisma.prisma = db
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db
