@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -12,10 +12,9 @@ import {
 } from '@/components/ui/dialog';
 import {
   FileDown, Palette, Eye, ZoomIn, ZoomOut, RotateCcw,
-  Check, Sparkles, Layout, Type, Maximize2, Download, Settings2
+  Check, Sparkles, Layout, Type, Maximize2
 } from 'lucide-react';
-import html2canvas from 'html2canvas-pro';
-import jsPDF from 'jspdf';
+// Using browser print for PDF generation - most reliable single-page solution
 
 type TemplateType = 'classic' | 'modern' | 'creative' | 'minimal' | 'executive' | 'corporate' | 'elegant' | 'tech' | 'infographic' | 'bold' | 'compact' | 'professional';
 
@@ -116,72 +115,7 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
     accentColor: colorOverrides.accent,
   };
 
-  const handleDownloadPDF = useCallback(async () => {
-    if (!renderRef.current) return;
-    setIsGenerating(true);
-
-    try {
-      // Wait a moment for any pending renders
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      const container = renderRef.current;
-      const maxH = 1056; // 11 inches at 96dpi
-      const contentH = container.scrollHeight;
-
-      // Smart auto-fit: if content overflows, use zoom on the render container
-      let scaleFactor = 1;
-      if (contentH > maxH) {
-        scaleFactor = maxH / contentH * 0.995;
-        container.style.transform = `scale(${scaleFactor})`;
-        container.style.transformOrigin = 'top left';
-        container.style.width = `${100 / scaleFactor}%`;
-        container.style.height = `${contentH * scaleFactor}px`;
-      }
-
-      // Wait for any layout changes to settle
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      const canvas = await html2canvas(container, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-        width: 816,  // 8.5 inches at 96dpi
-        height: Math.min(container.scrollHeight * (scaleFactor < 1 ? scaleFactor : 1), maxH),
-        windowWidth: 816,
-        windowHeight: maxH,
-      });
-
-      // Reset transform if we applied it
-      if (scaleFactor < 1) {
-        container.style.transform = '';
-        container.style.transformOrigin = '';
-        container.style.width = '';
-        container.style.height = '';
-      }
-
-      // Create PDF - letter size (8.5 x 11 inches)
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'in',
-        format: 'letter',
-      });
-
-      const imgData = canvas.toDataURL('image/png');
-      pdf.addImage(imgData, 'PNG', 0, 0, 8.5, 11, undefined, 'FAST');
-
-      pdf.save(`CV_${profile?.name?.replace(/\s+/g, '_') || 'Documento'}.pdf`);
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      // Fallback to print method
-      handlePrintFallback();
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [profile, selectedTemplate, sections, colorOverrides]);
-
-  const handlePrintFallback = () => {
+  const handlePrint = () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
@@ -416,13 +350,13 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
               }`}>
                 {fitStatus === 'fits' && <><Check size={14} /> Ajustado a una página</>}
                 {fitStatus === 'adjusted' && <><Sparkles size={14} /> Se ajustará automáticamente</>}
-                {fitStatus === 'overflow' && <><Maximize2 size={14} /> Se ajustará automáticamente al generar</>}
+                {fitStatus === 'overflow' && <><Maximize2 size={14} /> Se ajustará al imprimir</>}
                 {fitStatus === 'checking' && <span className="animate-pulse">Verificando...</span>}
               </div>
 
-              {/* Generate Button */}
+              {/* Print Button */}
               <Button
-                onClick={handleDownloadPDF}
+                onClick={() => { setIsGenerating(true); handlePrint(); setTimeout(() => setIsGenerating(false), 1000); }}
                 disabled={isGenerating}
                 className="w-full gap-2 py-6 text-base font-semibold shadow-lg hover:shadow-xl transition-all"
                 style={{
@@ -433,23 +367,19 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
                 {isGenerating ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Generando PDF...
+                    Abriendo impresión...
                   </>
                 ) : (
                   <>
-                    <Download size={18} />
-                    Descargar PDF
+                    <FileDown size={18} />
+                    Imprimir CV en PDF
                   </>
                 )}
               </Button>
 
-              {/* Print Fallback */}
-              <button
-                onClick={handlePrintFallback}
-                className="w-full text-xs text-gray-400 hover:text-gray-600 text-center py-1 transition-colors"
-              >
-                O usar impresión del navegador
-              </button>
+              <p className="text-xs text-gray-400 text-center">
+                En el diálogo de impresión selecciona "Guardar como PDF"
+              </p>
             </div>
           </div>
 
