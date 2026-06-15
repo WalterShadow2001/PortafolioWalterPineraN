@@ -240,7 +240,7 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[100vw] max-h-[100vh] w-[100vw] h-[100vh] p-0 overflow-hidden rounded-none border-0" showCloseButton={true} style={{ background: '#0f172a' }}>
+      <DialogContent className="sm:max-w-[100vw] max-w-[100vw] max-h-[100vh] w-[100vw] h-[100vh] p-0 gap-0 overflow-hidden rounded-none border-0" showCloseButton={true} style={{ background: '#0f172a' }}>
         <DialogHeader className="px-6 pt-4 pb-3 border-b border-slate-700/50 bg-slate-900">
           <DialogTitle className="text-lg flex items-center gap-2 text-white">
             <Layout size={20} className="text-blue-400" />
@@ -250,7 +250,7 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
 
         <div className="flex h-[calc(100vh-56px)]">
           {/* Left Sidebar - Controls */}
-          <div className="w-[360px] border-r border-slate-700/50 flex flex-col bg-slate-900">
+          <div className="w-[460px] border-r border-slate-700/50 flex flex-col bg-slate-900">
             {/* Tab Navigation */}
             <div className="flex border-b border-slate-700/50 bg-slate-800">
               {[
