@@ -145,13 +145,13 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
 
     // Generate QR code for the portfolio URL
     const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://portafolio-walter-pineran.vercel.app';
-    const qrSvg = await generateQRSvgString(siteUrl, 36, colorOverrides.primary);
+    const qrSvg = await generateQRSvgString(siteUrl, 48, colorOverrides.primary);
     const siteHost = siteUrl.replace('https://', '').replace('http://', '');
     const qrHtml = `
       <div class="cv-qr-section">
         <div class="cv-qr-code">${qrSvg}</div>
         <div class="cv-qr-text">
-          <div class="cv-qr-title">Portafolio online</div>
+          <div class="cv-qr-title">Escanea para ver portafolio</div>
           <div class="cv-qr-url">${siteHost}</div>
         </div>
       </div>
@@ -160,7 +160,7 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
     const styles = getTemplateStyles(selectedTemplate, modifiedProfile);
     const content = generateCVContent(modifiedProfile, selectedTemplate, sections, colorOverrides, qrHtml);
 
-    const qrStyles = `.cv-qr-section{display:flex;align-items:center;justify-content:flex-end;gap:5px;margin-top:4px;padding-top:3px;border-top:1px solid rgba(0,0,0,0.06)}.cv-qr-code{padding:2px;background:#fff;border-radius:3px;line-height:0}.cv-qr-text{text-align:right}.cv-qr-title{font-size:5.5pt;font-weight:600;letter-spacing:0.3px;opacity:0.4}.cv-qr-url{font-size:5pt;font-family:monospace;opacity:0.3}`;
+    const qrStyles = `.cv-qr-section{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;padding:8px 12px;border:1px solid rgba(0,0,0,0.06);border-radius:6px;background:rgba(255,255,255,0.5)}.cv-qr-code{padding:3px;background:#fff;border-radius:4px;line-height:0;box-shadow:0 1px 3px rgba(0,0,0,0.08)}.cv-qr-text{text-align:center}.cv-qr-title{font-size:7pt;font-weight:600;letter-spacing:0.5px;opacity:0.5}.cv-qr-url{font-size:6pt;font-family:monospace;opacity:0.35;margin-top:1px}`;
 
     // Auto-fit script that shrinks content to fit exactly one letter page
     // Strategy: wrap cv-container in a page-sized div with overflow:hidden,
@@ -483,7 +483,7 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
                     className="cv-render-container"
                     style={{ width: 816, height: 'auto', overflow: 'hidden' }}
                     dangerouslySetInnerHTML={{
-                      __html: `<style>${getTemplateStyles(selectedTemplate, modifiedProfile, colorOverrides)}.cv-qr-section{display:flex;align-items:center;justify-content:flex-end;gap:5px;margin-top:4px;padding-top:3px;border-top:1px solid rgba(0,0,0,0.06)}.cv-qr-code{padding:2px;background:#fff;border-radius:3px;line-height:0}.cv-qr-text{text-align:right}.cv-qr-title{font-size:5.5pt;font-weight:600;letter-spacing:0.3px;opacity:0.4}.cv-qr-url{font-size:5pt;font-family:monospace;opacity:0.3}</style>${generateCVContent(modifiedProfile, selectedTemplate, sections, colorOverrides, `<div class="cv-qr-section"><div class="cv-qr-code" style="width:36px;height:36px;background:repeating-conic-gradient(${colorOverrides?.primary || '#2563eb'} 0% 25%,#fff 0% 50%) 50%/5px 5px;border-radius:2px"></div><div class="cv-qr-text"><div class="cv-qr-title">Portafolio online</div><div class="cv-qr-url">portafolio-walter-pineran.vercel.app</div></div></div>`)}`
+                      __html: `<style>${getTemplateStyles(selectedTemplate, modifiedProfile, colorOverrides)}.cv-qr-section{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;padding:8px 12px;border:1px solid rgba(0,0,0,0.06);border-radius:6px;background:rgba(255,255,255,0.5)}.cv-qr-code{padding:3px;background:#fff;border-radius:4px;line-height:0;box-shadow:0 1px 3px rgba(0,0,0,0.08)}.cv-qr-text{text-align:center}.cv-qr-title{font-size:7pt;font-weight:600;letter-spacing:0.5px;opacity:0.5}.cv-qr-url{font-size:6pt;font-family:monospace;opacity:0.35;margin-top:1px}</style>${generateCVContent(modifiedProfile, selectedTemplate, sections, colorOverrides, `<div class="cv-qr-section"><div class="cv-qr-code" style="width:48px;height:48px;background:repeating-conic-gradient(${colorOverrides?.primary || '#2563eb'} 0% 25%,#fff 0% 50%) 50%/6px 6px;border-radius:3px"></div><div class="cv-qr-text"><div class="cv-qr-title">Escanea para ver portafolio</div><div class="cv-qr-url">portafolio-walter-pineran.vercel.app</div></div></div>`)}`
                     }}
                   />
                 </div>
