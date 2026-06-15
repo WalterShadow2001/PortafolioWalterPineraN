@@ -159,35 +159,60 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
 
     const styles = getTemplateStyles(selectedTemplate, modifiedProfile);
     const content = generateCVContent(modifiedProfile, selectedTemplate, sections, colorOverrides, qrHtml);
-    const maxH = 1056;
 
     const qrStyles = `.cv-qr-section{display:flex;align-items:center;justify-content:flex-end;gap:5px;margin-top:4px;padding-top:3px;border-top:1px solid rgba(0,0,0,0.06)}.cv-qr-code{padding:2px;background:#fff;border-radius:3px;line-height:0}.cv-qr-text{text-align:right}.cv-qr-title{font-size:5.5pt;font-weight:600;letter-spacing:0.3px;opacity:0.4}.cv-qr-url{font-size:5pt;font-family:monospace;opacity:0.3}`;
 
+    // Auto-fit script that shrinks content to fit exactly one letter page
+    // Strategy: wrap cv-container in a page-sized div with overflow:hidden,
+    // then scale the content down with CSS transform if it overflows
     const autoFitScript = `
       <script>
         (function(){
+          var maxW = 816, maxH = 1056;
           function fit(){
             var cv = document.querySelector('.cv-container');
-            if(!cv) return;
+            var page = document.querySelector('.cv-page');
+            if(!cv || !page) return;
             var h = cv.scrollHeight;
-            var maxH = ${maxH};
             if(h > maxH){
-              var zoom = (maxH / h * 0.99).toFixed(4);
-              document.body.style.zoom = zoom;
+              var scale = maxH / h;
+              cv.style.transform = 'scale(' + scale + ')';
+              cv.style.transformOrigin = 'top left';
+              cv.style.width = maxW + 'px';
+              page.style.height = maxH + 'px';
+              page.style.width = maxW + 'px';
+              page.style.overflow = 'hidden';
             }
           }
-          window.addEventListener('DOMContentLoaded', function(){ setTimeout(fit, 200); setTimeout(fit, 600); setTimeout(fit, 1000); });
-          window.addEventListener('load', function(){ setTimeout(fit, 300); setTimeout(fit, 800); });
+          function runFit(){
+            fit();
+            setTimeout(fit, 100);
+            setTimeout(fit, 300);
+            setTimeout(fit, 600);
+            setTimeout(fit, 1000);
+          }
+          window.addEventListener('DOMContentLoaded', function(){ setTimeout(runFit, 100); });
+          window.addEventListener('load', function(){ runFit(); });
           window.addEventListener('beforeprint', function(){ fit(); });
         })();
       </script>
     `;
 
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>CV - ${profile?.name}</title><style>${styles}${qrStyles}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:letter;margin:0}}</style></head><body>${content}${autoFitScript}</body></html>`;
+    const printStyles = `
+      .cv-page { width: 816px; min-height: 1056px; overflow: hidden; }
+      @media print {
+        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0; padding: 0; }
+        @page { size: letter; margin: 0; }
+        .cv-page { overflow: hidden; }
+      }
+    `;
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>CV - ${profile?.name}</title><style>${styles}${qrStyles}${printStyles}body{margin:0;padding:0}</style></head><body><div class="cv-page">${content}</div>${autoFitScript}</body></html>`;
     printWindow.document.write(html);
     printWindow.document.close();
     printWindow.focus();
-    setTimeout(() => { printWindow.print(); }, 600);
+    // Give enough time for auto-fit to run before opening print dialog
+    setTimeout(() => { printWindow.print(); }, 1500);
   };
 
   const resetColors = () => {
