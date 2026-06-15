@@ -145,13 +145,13 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
 
     // Generate QR code for the portfolio URL
     const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://portafolio-walter-pineran.vercel.app';
-    const qrSvg = await generateQRSvgString(siteUrl, 60, colorOverrides.primary);
+    const qrSvg = await generateQRSvgString(siteUrl, 36, colorOverrides.primary);
     const siteHost = siteUrl.replace('https://', '').replace('http://', '');
     const qrHtml = `
       <div class="cv-qr-section">
         <div class="cv-qr-code">${qrSvg}</div>
-        <div class="cv-qr-label">
-          <div class="cv-qr-title">Escanea para ver portafolio</div>
+        <div class="cv-qr-text">
+          <div class="cv-qr-title">Portafolio online</div>
           <div class="cv-qr-url">${siteHost}</div>
         </div>
       </div>
@@ -161,7 +161,7 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
     const content = generateCVContent(modifiedProfile, selectedTemplate, sections, colorOverrides, qrHtml);
     const maxH = 1056;
 
-    const qrStyles = `.cv-qr-section{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px;padding-top:6px;border-top:1px solid rgba(0,0,0,0.08)}.cv-qr-code{padding:3px;background:#fff;border-radius:4px;border:1px solid rgba(0,0,0,0.06)}.cv-qr-label{text-align:center}.cv-qr-title{font-size:7pt;font-weight:600;letter-spacing:0.5px;opacity:0.5}.cv-qr-url{font-size:6pt;font-family:monospace;margin-top:1px;opacity:0.35}`;
+    const qrStyles = `.cv-qr-section{display:flex;align-items:center;justify-content:flex-end;gap:5px;margin-top:4px;padding-top:3px;border-top:1px solid rgba(0,0,0,0.06)}.cv-qr-code{padding:2px;background:#fff;border-radius:3px;line-height:0}.cv-qr-text{text-align:right}.cv-qr-title{font-size:5.5pt;font-weight:600;letter-spacing:0.3px;opacity:0.4}.cv-qr-url{font-size:5pt;font-family:monospace;opacity:0.3}`;
 
     const autoFitScript = `
       <script>
@@ -172,12 +172,13 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
             var h = cv.scrollHeight;
             var maxH = ${maxH};
             if(h > maxH){
-              var zoom = (maxH / h).toFixed(4);
+              var zoom = (maxH / h * 0.99).toFixed(4);
               document.body.style.zoom = zoom;
             }
           }
-          window.addEventListener('DOMContentLoaded', function(){ setTimeout(fit, 200); setTimeout(fit, 600); });
-          window.addEventListener('load', function(){ setTimeout(fit, 300); });
+          window.addEventListener('DOMContentLoaded', function(){ setTimeout(fit, 200); setTimeout(fit, 600); setTimeout(fit, 1000); });
+          window.addEventListener('load', function(){ setTimeout(fit, 300); setTimeout(fit, 800); });
+          window.addEventListener('beforeprint', function(){ fit(); });
         })();
       </script>
     `;
@@ -457,7 +458,7 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
                     className="cv-render-container"
                     style={{ width: 816, height: 'auto', overflow: 'hidden' }}
                     dangerouslySetInnerHTML={{
-                      __html: `<style>${getTemplateStyles(selectedTemplate, modifiedProfile, colorOverrides)}.cv-qr-section{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px;padding-top:6px;border-top:1px solid rgba(0,0,0,0.08)}.cv-qr-code{padding:3px;background:#fff;border-radius:4px;border:1px solid rgba(0,0,0,0.06)}.cv-qr-label{text-align:center}.cv-qr-title{font-size:7pt;font-weight:600;letter-spacing:0.5px;opacity:0.5}.cv-qr-url{font-size:6pt;font-family:monospace;margin-top:1px;opacity:0.35}</style>${generateCVContent(modifiedProfile, selectedTemplate, sections, colorOverrides, `<div class="cv-qr-section"><div class="cv-qr-code" style="width:60px;height:60px;background:repeating-conic-gradient(${colorOverrides?.primary || '#2563eb'} 0% 25%,#fff 0% 50%) 50%/8px 8px;border-radius:2px"></div><div class="cv-qr-label"><div class="cv-qr-title">Escanea para ver portafolio</div><div class="cv-qr-url">portafolio-walter-pineran.vercel.app</div></div></div>`)}`
+                      __html: `<style>${getTemplateStyles(selectedTemplate, modifiedProfile, colorOverrides)}.cv-qr-section{display:flex;align-items:center;justify-content:flex-end;gap:5px;margin-top:4px;padding-top:3px;border-top:1px solid rgba(0,0,0,0.06)}.cv-qr-code{padding:2px;background:#fff;border-radius:3px;line-height:0}.cv-qr-text{text-align:right}.cv-qr-title{font-size:5.5pt;font-weight:600;letter-spacing:0.3px;opacity:0.4}.cv-qr-url{font-size:5pt;font-family:monospace;opacity:0.3}</style>${generateCVContent(modifiedProfile, selectedTemplate, sections, colorOverrides, `<div class="cv-qr-section"><div class="cv-qr-code" style="width:36px;height:36px;background:repeating-conic-gradient(${colorOverrides?.primary || '#2563eb'} 0% 25%,#fff 0% 50%) 50%/5px 5px;border-radius:2px"></div><div class="cv-qr-text"><div class="cv-qr-title">Portafolio online</div><div class="cv-qr-url">portafolio-walter-pineran.vercel.app</div></div></div>`)}`
                     }}
                   />
                 </div>
