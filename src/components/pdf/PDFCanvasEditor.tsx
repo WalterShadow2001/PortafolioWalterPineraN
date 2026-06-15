@@ -145,7 +145,7 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
 
     // Generate QR code for the portfolio URL
     const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://portafolio-walter-pineran.vercel.app';
-    const qrSvg = await generateQRSvgString(siteUrl, 64, colorOverrides.primary);
+    const qrSvg = await generateQRSvgString(siteUrl, 80, colorOverrides.primary);
     const siteHost = siteUrl.replace('https://', '').replace('http://', '');
     // QR for column placement (vertical/centered layout)
     const qrColumnHtml = `
@@ -171,7 +171,7 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
     const styles = getTemplateStyles(selectedTemplate, modifiedProfile);
     const content = generateCVContent(modifiedProfile, selectedTemplate, sections, colorOverrides, qrColumnHtml, qrBottomHtml);
 
-    const qrStyles = `.cv-qr-section{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;margin-top:12px;padding:10px 8px;border:1px solid rgba(0,0,0,0.08);border-radius:8px;background:rgba(255,255,255,0.6)}.cv-qr-code{padding:4px;background:#fff;border-radius:5px;line-height:0;box-shadow:0 1px 4px rgba(0,0,0,0.1)}.cv-qr-text{text-align:center}.cv-qr-title{font-size:7.5pt;font-weight:600;letter-spacing:0.5px;opacity:0.55}.cv-qr-url{font-size:6.5pt;font-family:monospace;opacity:0.4;margin-top:1px}.cv-qr-bottom{flex-direction:row;justify-content:flex-end;gap:8px;padding:6px 12px;margin-top:8px}`;
+    const qrStyles = `.cv-qr-section{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;margin-top:14px;padding:12px 10px;border:1px solid rgba(0,0,0,0.08);border-radius:8px;background:rgba(255,255,255,0.6)}.cv-qr-code{padding:4px;background:#fff;border-radius:5px;line-height:0;box-shadow:0 1px 4px rgba(0,0,0,0.1)}.cv-qr-text{text-align:center}.cv-qr-title{font-size:8pt;font-weight:600;letter-spacing:0.5px;opacity:0.55}.cv-qr-url{font-size:7pt;font-family:monospace;opacity:0.4;margin-top:1px}.cv-qr-bottom{flex-direction:row;justify-content:flex-end;gap:8px;padding:8px 12px;margin-top:10px}`;
 
     // Auto-fit script that shrinks content to fit exactly one letter page
     // Strategy: wrap cv-container in a page-sized div with overflow:hidden,
@@ -494,7 +494,7 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
                     className="cv-render-container"
                     style={{ width: 816, height: 'auto', overflow: 'hidden' }}
                     dangerouslySetInnerHTML={{
-                      __html: `<style>${getTemplateStyles(selectedTemplate, modifiedProfile, colorOverrides)}.cv-qr-section{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;margin-top:12px;padding:10px 8px;border:1px solid rgba(0,0,0,0.08);border-radius:8px;background:rgba(255,255,255,0.6)}.cv-qr-code{padding:4px;background:#fff;border-radius:5px;line-height:0;box-shadow:0 1px 4px rgba(0,0,0,0.1)}.cv-qr-text{text-align:center}.cv-qr-title{font-size:7.5pt;font-weight:600;letter-spacing:0.5px;opacity:0.55}.cv-qr-url{font-size:6.5pt;font-family:monospace;opacity:0.4;margin-top:1px}.cv-qr-bottom{flex-direction:row;justify-content:flex-end;gap:8px;padding:6px 12px;margin-top:8px}</style>${generateCVContent(modifiedProfile, selectedTemplate, sections, colorOverrides, `<div class="cv-qr-section"><div class="cv-qr-code" style="width:64px;height:64px;background:repeating-conic-gradient(${colorOverrides?.primary || '#2563eb'} 0% 25%,#fff 0% 50%) 50%/8px 8px;border-radius:4px"></div><div class="cv-qr-text"><div class="cv-qr-title">Escanea para ver portafolio</div><div class="cv-qr-url">portafolio-walter-pineran.vercel.app</div></div></div>`, `<div class="cv-qr-section cv-qr-bottom"><div class="cv-qr-code" style="width:64px;height:64px;background:repeating-conic-gradient(${colorOverrides?.primary || '#2563eb'} 0% 25%,#fff 0% 50%) 50%/8px 8px;border-radius:4px"></div><div class="cv-qr-text"><div class="cv-qr-title">Escanea para ver portafolio</div><div class="cv-qr-url">portafolio-walter-pineran.vercel.app</div></div></div>`)}`
+                      __html: `<style>${getTemplateStyles(selectedTemplate, modifiedProfile, colorOverrides)}.cv-qr-section{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;margin-top:14px;padding:12px 10px;border:1px solid rgba(0,0,0,0.08);border-radius:8px;background:rgba(255,255,255,0.6)}.cv-qr-code{padding:4px;background:#fff;border-radius:5px;line-height:0;box-shadow:0 1px 4px rgba(0,0,0,0.1)}.cv-qr-text{text-align:center}.cv-qr-title{font-size:8pt;font-weight:600;letter-spacing:0.5px;opacity:0.55}.cv-qr-url{font-size:7pt;font-family:monospace;opacity:0.4;margin-top:1px}.cv-qr-bottom{flex-direction:row;justify-content:flex-end;gap:8px;padding:8px 12px;margin-top:10px}</style>${generateCVContent(modifiedProfile, selectedTemplate, sections, colorOverrides, `<div class="cv-qr-section"><div class="cv-qr-code" style="width:80px;height:80px;background:repeating-conic-gradient(${colorOverrides?.primary || '#2563eb'} 0% 25%,#fff 0% 50%) 50%/10px 10px;border-radius:4px"></div><div class="cv-qr-text"><div class="cv-qr-title">Escanea para ver portafolio</div><div class="cv-qr-url">portafolio-walter-pineran.vercel.app</div></div></div>`, `<div class="cv-qr-section cv-qr-bottom"><div class="cv-qr-code" style="width:80px;height:80px;background:repeating-conic-gradient(${colorOverrides?.primary || '#2563eb'} 0% 25%,#fff 0% 50%) 50%/10px 10px;border-radius:4px"></div><div class="cv-qr-text"><div class="cv-qr-title">Escanea para ver portafolio</div><div class="cv-qr-url">portafolio-walter-pineran.vercel.app</div></div></div>`)}`
                     }}
                   />
                 </div>
@@ -539,7 +539,7 @@ function getTemplateStyles(template: TemplateType, profile: any, colorOverrides?
 
   switch (template) {
     case 'classic':
-      return baseStyles + getPhotoStyles(profile, 56) + `
+      return baseStyles + getPhotoStyles(profile, 80) + `
         .cv-container { width: 816px; padding: 28px 32px; }
         .header { text-align: center; border-bottom: 2px solid ${pc}; padding-bottom: 10px; margin-bottom: 10px; }
         .name { font-size: 18pt; font-weight: 700; color: ${pc}; margin-bottom: 2px; letter-spacing: 0.5px; }
@@ -561,7 +561,7 @@ function getTemplateStyles(template: TemplateType, profile: any, colorOverrides?
       `;
 
     case 'modern':
-      return baseStyles + getPhotoStyles(profile, 56) + `
+      return baseStyles + getPhotoStyles(profile, 80) + `
         .cv-container { display: flex; width: 816px; }
         .sidebar { width: 30%; background: ${pc}; color: #fff; padding: 16px 12px; }
         .main { width: 70%; padding: 14px 16px; }
@@ -584,7 +584,7 @@ function getTemplateStyles(template: TemplateType, profile: any, colorOverrides?
       `;
 
     case 'creative':
-      return baseStyles + getPhotoStyles(profile, 50, true) + `
+      return baseStyles + getPhotoStyles(profile, 72, true) + `
         .cv-container { width: 816px; padding: 24px; }
         .header { background: linear-gradient(135deg, ${pc}, ${sc}); color: #fff; padding: 14px 18px; border-radius: 6px; margin-bottom: 10px; display: flex; gap: 12px; align-items: center; }
         .header-info { flex: 1; }
@@ -607,7 +607,7 @@ function getTemplateStyles(template: TemplateType, profile: any, colorOverrides?
       `;
 
     case 'minimal':
-      return baseStyles + getPhotoStyles(profile, 50) + `
+      return baseStyles + getPhotoStyles(profile, 72) + `
         .cv-container { width: 816px; padding: 32px 36px; }
         .header { text-align: center; margin-bottom: 14px; }
         .name { font-size: 20pt; font-weight: 300; letter-spacing: 3px; margin-bottom: 3px; text-transform: uppercase; color: ${tc}; }
@@ -626,7 +626,7 @@ function getTemplateStyles(template: TemplateType, profile: any, colorOverrides?
       `;
 
     case 'executive':
-      return baseStyles + getPhotoStyles(profile, 44, true) + `
+      return baseStyles + getPhotoStyles(profile, 68, true) + `
         .cv-container { width: 816px; }
         .header-band { background: ${pc}; color: #fff; padding: 14px 20px; display: flex; align-items: center; gap: 14px; }
         .header-text { flex: 1; }
@@ -652,7 +652,7 @@ function getTemplateStyles(template: TemplateType, profile: any, colorOverrides?
       `;
 
     case 'corporate':
-      return baseStyles + getPhotoStyles(profile, 48) + `
+      return baseStyles + getPhotoStyles(profile, 70) + `
         .cv-container { width: 816px; border-left: 4px solid ${pc}; padding: 16px 20px; }
         .header { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid ${tc}15; }
         .header-main { flex: 1; }
@@ -673,7 +673,7 @@ function getTemplateStyles(template: TemplateType, profile: any, colorOverrides?
       `;
 
     case 'elegant':
-      return baseStyles + getPhotoStyles(profile, 52) + `
+      return baseStyles + getPhotoStyles(profile, 76) + `
         .cv-container { width: 816px; padding: 24px; border: 2px double ${pc}20; margin: 0; }
         .inner { border: 1px solid ${pc}15; padding: 14px 18px; }
         .header { text-align: center; margin-bottom: 10px; }
@@ -698,7 +698,7 @@ function getTemplateStyles(template: TemplateType, profile: any, colorOverrides?
       `;
 
     case 'tech':
-      return baseStyles + getPhotoStyles(profile, 42, true) + `
+      return baseStyles + getPhotoStyles(profile, 66, true) + `
         .cv-container { width: 816px; background: #fafbfc; }
         .header { background: #1a1a2e; color: #e0e0e0; padding: 12px 18px; display: flex; align-items: center; gap: 12px; }
         .header-info { flex: 1; }
@@ -721,7 +721,7 @@ function getTemplateStyles(template: TemplateType, profile: any, colorOverrides?
       `;
 
     case 'infographic':
-      return baseStyles + getPhotoStyles(profile, 50) + `
+      return baseStyles + getPhotoStyles(profile, 72) + `
         .cv-container { width: 816px; padding: 24px; }
         .header { text-align: center; margin-bottom: 12px; padding: 14px; background: linear-gradient(135deg, ${pc}10, ${sc}10); border-radius: 8px; }
         .name { font-size: 16pt; font-weight: 700; color: ${pc}; }
@@ -744,7 +744,7 @@ function getTemplateStyles(template: TemplateType, profile: any, colorOverrides?
       `;
 
     case 'bold':
-      return baseStyles + getPhotoStyles(profile, 48, true) + `
+      return baseStyles + getPhotoStyles(profile, 70, true) + `
         .cv-container { width: 816px; }
         .header { background: ${pc}; color: #fff; padding: 18px 24px; display: flex; align-items: center; gap: 14px; }
         .header-info { flex: 1; }
@@ -771,7 +771,7 @@ function getTemplateStyles(template: TemplateType, profile: any, colorOverrides?
       `;
 
     case 'compact':
-      return baseStyles + getPhotoStyles(profile, 40, true) + `
+      return baseStyles + getPhotoStyles(profile, 62, true) + `
         .cv-container { width: 816px; padding: 18px 22px; }
         .header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1.5px solid ${pc}; }
         .header-info { flex: 1; }
@@ -795,7 +795,7 @@ function getTemplateStyles(template: TemplateType, profile: any, colorOverrides?
       `;
 
     case 'professional':
-      return baseStyles + getPhotoStyles(profile, 50) + `
+      return baseStyles + getPhotoStyles(profile, 72) + `
         .cv-container { width: 816px; padding: 24px 28px; }
         .header { display: flex; gap: 14px; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px solid ${pc}; }
         .header-text { flex: 1; }
@@ -884,7 +884,7 @@ function generateCVContent(profile: any, template: TemplateType, sections: Secti
       return `<div class="cv-container"><div class="header">${ph}<div class="header-main"><div class="name">${profile.name}</div><div class="title">${profile.title}</div>${sections.contact ? `<div class="contact-info">${[profile.email ? `📧 ${profile.email}` : '', profile.phone ? `📱 ${profile.phone}` : '', profile.location ? `📍 ${profile.location}` : ''].filter(Boolean).join('')}</div>` : ''}</div></div>${profile.bio ? `<div class="section"><div class="section-title">Perfil Profesional</div><p style="font-size:7.5pt;color:${tc};opacity:0.7">${profile.bio}</p></div>` : ''}${sections.experience && work.length ? `<div class="section"><div class="section-title">Experiencia Laboral</div>${workHtml()}</div>` : ''}${sections.experience && edu.length ? `<div class="section"><div class="section-title">Educación</div>${eduHtml()}</div>` : ''}${sections.skills && profile.skills?.length ? `<div class="section"><div class="section-title">Habilidades</div><div class="skills-grid">${profile.skills.map((s: any) => `<span class="skill-tag">${s.name}</span>`).join('')}</div></div>` : ''}${sections.projects && profile.projects?.length ? `<div class="section"><div class="section-title">Proyectos</div>${projHtml(3)}</div>` : ''}${sections.certificates && profile.certificates?.length ? `<div class="section"><div class="section-title">Certificaciones</div>${certHtml('simple')}</div>` : ''}${qrBottomHtml || ''}</div>`;
 
     case 'elegant':
-      return `<div class="cv-container"><div class="inner"><div class="header"><div class="name">${profile.name.toUpperCase()}</div><div class="name-line"><span>&#9670;</span></div><div class="title">${profile.title}</div>${sections.contact ? `<div class="contact-line">${[profile.email, profile.phone, profile.location].filter(Boolean).join(' &middot; ')}</div>` : ''}</div>${profile.bio ? `<div class="section"><div class="section-divider"></div><p style="font-size:8pt;color:${tc};opacity:0.7;text-align:center;font-style:italic">${profile.bio}</p></div>` : ''}${sections.experience && work.length ? `<div class="section"><div class="section-title">Experiencia</div><div class="section-divider"></div>${workHtml()}</div>` : ''}${sections.experience && edu.length ? `<div class="section"><div class="section-title">Educación</div><div class="section-divider"></div>${eduHtml()}</div>` : ''}${sections.skills && profile.skills?.length ? `<div class="section"><div class="section-title">Habilidades</div><div class="section-divider"></div><div class="skills-list">${profile.skills.map((s: any) => `<span class="skill-tag">${s.name}</span>`).join('')}</div></div>` : ''}${sections.projects && profile.projects?.length ? `<div class="section"><div class="section-title">Proyectos</div><div class="section-divider"></div>${projHtml(3)}</div>` : ''}${sections.certificates && profile.certificates?.length ? `<div class="section"><div class="section-title">Certificaciones</div><div class="section-divider"></div>${certHtml('tag')}</div>` : ''}${qrBottomHtml || ''}</div></div>`;
+      return `<div class="cv-container"><div class="inner"><div class="header">${ph}<div class="name">${profile.name.toUpperCase()}</div><div class="name-line"><span>&#9670;</span></div><div class="title">${profile.title}</div>${sections.contact ? `<div class="contact-line">${[profile.email, profile.phone, profile.location].filter(Boolean).join(' &middot; ')}</div>` : ''}</div>${profile.bio ? `<div class="section"><div class="section-divider"></div><p style="font-size:8pt;color:${tc};opacity:0.7;text-align:center;font-style:italic">${profile.bio}</p></div>` : ''}${sections.experience && work.length ? `<div class="section"><div class="section-title">Experiencia</div><div class="section-divider"></div>${workHtml()}</div>` : ''}${sections.experience && edu.length ? `<div class="section"><div class="section-title">Educación</div><div class="section-divider"></div>${eduHtml()}</div>` : ''}${sections.skills && profile.skills?.length ? `<div class="section"><div class="section-title">Habilidades</div><div class="section-divider"></div><div class="skills-list">${profile.skills.map((s: any) => `<span class="skill-tag">${s.name}</span>`).join('')}</div></div>` : ''}${sections.projects && profile.projects?.length ? `<div class="section"><div class="section-title">Proyectos</div><div class="section-divider"></div>${projHtml(3)}</div>` : ''}${sections.certificates && profile.certificates?.length ? `<div class="section"><div class="section-title">Certificaciones</div><div class="section-divider"></div>${certHtml('tag')}</div>` : ''}${qrBottomHtml || ''}</div></div>`;
 
     case 'tech':
       return `<div class="cv-container"><div class="header">${ph}<div class="header-info"><div class="name">${profile.name}</div><div class="title">${profile.title}</div>${sections.contact ? `<div class="contact-line">${[profile.email ? `📧 ${profile.email}` : '', profile.phone ? `📱 ${profile.phone}` : '', profile.location ? `📍 ${profile.location}` : ''].filter(Boolean).join('')}</div>` : ''}</div></div>${profile.bio ? `<div class="section"><div class="section-title">about()</div><p style="font-size:7.5pt;color:#555">${profile.bio}</p></div>` : ''}${sections.experience && work.length ? `<div class="section"><div class="section-title">experience()</div>${workHtml()}</div>` : ''}${sections.experience && edu.length ? `<div class="section"><div class="section-title">education()</div>${eduHtml()}</div>` : ''}${sections.skills && profile.skills?.length ? `<div class="section"><div class="section-title">skills()</div><div class="skills-grid">${profile.skills.map((s: any) => `<span class="skill-tag">${s.name}</span>`).join('')}</div></div>` : ''}${sections.projects && profile.projects?.length ? `<div class="section"><div class="section-title">projects()</div>${projHtml(4)}</div>` : ''}${sections.certificates && profile.certificates?.length ? `<div class="section"><div class="section-title">certifications()</div>${certHtml('simple')}</div>` : ''}${qrBottomHtml || ''}</div>`;
