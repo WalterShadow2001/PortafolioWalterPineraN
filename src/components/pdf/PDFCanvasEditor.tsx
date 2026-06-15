@@ -240,19 +240,19 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 overflow-hidden" showCloseButton={true}>
-        <DialogHeader className="px-6 pt-5 pb-3 border-b border-gray-100">
-          <DialogTitle className="text-lg flex items-center gap-2">
-            <Layout size={20} className="text-blue-600" />
+      <DialogContent className="max-w-[100vw] max-h-[100vh] w-[100vw] h-[100vh] p-0 overflow-hidden rounded-none border-0" showCloseButton={true} style={{ background: '#0f172a' }}>
+        <DialogHeader className="px-6 pt-4 pb-3 border-b border-slate-700/50 bg-slate-900">
+          <DialogTitle className="text-lg flex items-center gap-2 text-white">
+            <Layout size={20} className="text-blue-400" />
             Generador de CV Inteligente
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex h-[calc(95vh-80px)]">
+        <div className="flex h-[calc(100vh-56px)]">
           {/* Left Sidebar - Controls */}
-          <div className="w-[320px] border-r border-gray-100 flex flex-col bg-gray-50/50">
+          <div className="w-[360px] border-r border-slate-700/50 flex flex-col bg-slate-900">
             {/* Tab Navigation */}
-            <div className="flex border-b border-gray-200 bg-white">
+            <div className="flex border-b border-slate-700/50 bg-slate-800">
               {[
                 { id: 'templates' as const, icon: Layout, label: 'Plantillas' },
                 { id: 'sections' as const, icon: Type, label: 'Secciones' },
@@ -263,8 +263,8 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex-1 py-3 px-2 text-xs font-medium flex flex-col items-center gap-1 transition-all border-b-2 ${
                     activeTab === tab.id
-                      ? 'text-blue-600 border-blue-600 bg-blue-50/50'
-                      : 'text-gray-500 border-transparent hover:text-gray-700 hover:bg-gray-50'
+                      ? 'text-blue-400 border-blue-400 bg-slate-700/50'
+                      : 'text-slate-400 border-transparent hover:text-slate-200 hover:bg-slate-700/30'
                   }`}
                 >
                   <tab.icon size={16} />
@@ -279,7 +279,7 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
                 <div className="space-y-4">
                   {['Profesional', 'Creativo', 'Minimalista'].map(category => (
                     <div key={category}>
-                      <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{category}</h4>
+                      <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{category}</h4>
                       <div className="grid grid-cols-2 gap-2">
                         {templates.filter(t => t.category === category).map(template => (
                           <button
@@ -287,13 +287,13 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
                             onClick={() => setSelectedTemplate(template.id)}
                             className={`p-2.5 rounded-lg border text-left transition-all group ${
                               selectedTemplate === template.id
-                                ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200 shadow-sm'
-                                : 'border-gray-200 bg-white hover:border-blue-300 hover:shadow-sm'
+                                ? 'border-blue-400 bg-blue-500/15 ring-2 ring-blue-400/30 shadow-sm shadow-blue-500/10'
+                                : 'border-slate-600/50 bg-slate-800 hover:border-blue-400/50 hover:shadow-sm'
                             }`}
                           >
                             <span className="text-base">{template.icon}</span>
                             <p className={`text-xs font-medium mt-1 ${
-                              selectedTemplate === template.id ? 'text-blue-700' : 'text-gray-700'
+                              selectedTemplate === template.id ? 'text-blue-300' : 'text-slate-300'
                             }`}>{template.name}</p>
                           </button>
                         ))}
@@ -305,7 +305,7 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
 
               {activeTab === 'sections' && (
                 <div className="space-y-3">
-                  <p className="text-xs text-gray-500 mb-4">Selecciona las secciones que aparecerán en tu CV</p>
+                  <p className="text-xs text-slate-400 mb-4">Selecciona las secciones que aparecerán en tu CV</p>
                   {[
                     { key: 'experience', label: 'Experiencia y Educación', icon: '💼' },
                     { key: 'projects', label: 'Proyectos', icon: '📁' },
@@ -315,8 +315,8 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
                   ].map(item => (
                     <div key={item.key} className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
                       sections[item.key as keyof SectionVisibility]
-                        ? 'border-blue-200 bg-blue-50/50'
-                        : 'border-gray-200 bg-white'
+                        ? 'border-blue-400/40 bg-blue-500/10'
+                        : 'border-slate-600/50 bg-slate-800'
                     }`}>
                       <Checkbox
                         id={`sec-${item.key}`}
@@ -327,7 +327,7 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
                       />
                       <Label htmlFor={`sec-${item.key}`} className="cursor-pointer flex items-center gap-2 text-sm flex-1">
                         <span>{item.icon}</span>
-                        <span className={sections[item.key as keyof SectionVisibility] ? 'text-gray-800' : 'text-gray-400'}>
+                        <span className={sections[item.key as keyof SectionVisibility] ? 'text-slate-200' : 'text-slate-500'}>
                           {item.label}
                         </span>
                       </Label>
@@ -339,10 +339,10 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
               {activeTab === 'colors' && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs text-gray-500">Personaliza los colores del CV</p>
+                    <p className="text-xs text-slate-400">Personaliza los colores del CV</p>
                     <button
                       onClick={resetColors}
-                      className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                      className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
                     >
                       <RotateCcw size={10} /> Reset
                     </button>
@@ -353,17 +353,17 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
                     { key: 'accent', label: 'Color Acento', desc: 'Resaltados' },
                     { key: 'text', label: 'Color de Texto', desc: 'Texto principal' },
                   ].map(item => (
-                    <div key={item.key} className="p-3 rounded-lg border border-gray-200 bg-white">
+                    <div key={item.key} className="p-3 rounded-lg border border-slate-600/50 bg-slate-800">
                       <div className="flex items-center justify-between mb-2">
                         <div>
-                          <p className="text-sm font-medium text-gray-700">{item.label}</p>
-                          <p className="text-xs text-gray-400">{item.desc}</p>
+                          <p className="text-sm font-medium text-slate-200">{item.label}</p>
+                          <p className="text-xs text-slate-500">{item.desc}</p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-mono text-gray-500">
+                          <span className="text-xs font-mono text-slate-400">
                             {colorOverrides[item.key as keyof ColorOverrides]}
                           </span>
-                          <label className="w-8 h-8 rounded-lg border-2 border-gray-200 overflow-hidden cursor-pointer hover:border-blue-400 transition-colors relative">
+                          <label className="w-8 h-8 rounded-lg border-2 border-slate-600 overflow-hidden cursor-pointer hover:border-blue-400 transition-colors relative">
                             <input
                               type="color"
                               value={colorOverrides[item.key as keyof ColorOverrides]}
@@ -382,7 +382,7 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
 
                   {/* Quick Color Presets */}
                   <div className="mt-4">
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Paletas rápidas</p>
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Paletas rápidas</p>
                     <div className="grid grid-cols-4 gap-2">
                       {[
                         { primary: '#2563eb', secondary: '#60a5fa', accent: '#f59e0b', text: '#1f2937', name: 'Azul' },
@@ -400,14 +400,14 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
                           className="group relative"
                           title={preset.name}
                         >
-                          <div className="h-10 rounded-lg border border-gray-200 overflow-hidden hover:border-blue-400 transition-colors hover:shadow-sm">
+                          <div className="h-10 rounded-lg border border-slate-600/50 overflow-hidden hover:border-blue-400 transition-colors hover:shadow-sm">
                             <div className="flex h-full">
                               <div className="flex-1" style={{ backgroundColor: preset.primary }} />
                               <div className="flex-1" style={{ backgroundColor: preset.secondary }} />
                               <div className="w-2" style={{ backgroundColor: preset.accent }} />
                             </div>
                           </div>
-                          <span className="text-[9px] text-gray-500 group-hover:text-gray-700 text-center block mt-0.5">{preset.name}</span>
+                          <span className="text-[9px] text-slate-400 group-hover:text-slate-200 text-center block mt-0.5">{preset.name}</span>
                         </button>
                       ))}
                     </div>
@@ -417,13 +417,13 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
             </div>
 
             {/* Bottom Action Area */}
-            <div className="p-4 border-t border-gray-200 bg-white space-y-3">
+            <div className="p-4 border-t border-slate-700/50 bg-slate-900 space-y-3">
               {/* Fit Status Indicator */}
               <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium ${
-                fitStatus === 'fits' ? 'bg-green-50 text-green-700' :
-                fitStatus === 'adjusted' ? 'bg-yellow-50 text-yellow-700' :
-                fitStatus === 'overflow' ? 'bg-red-50 text-red-700' :
-                'bg-gray-50 text-gray-500'
+                fitStatus === 'fits' ? 'bg-green-900/40 text-green-400' :
+                fitStatus === 'adjusted' ? 'bg-yellow-900/40 text-yellow-400' :
+                fitStatus === 'overflow' ? 'bg-red-900/40 text-red-400' :
+                'bg-slate-800 text-slate-500'
               }`}>
                 {fitStatus === 'fits' && <><Check size={14} /> Ajustado a una página</>}
                 {fitStatus === 'adjusted' && <><Sparkles size={14} /> Se ajustará automáticamente</>}
@@ -454,27 +454,27 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
                 )}
               </Button>
 
-              <p className="text-xs text-gray-400 text-center">
+              <p className="text-xs text-slate-500 text-center">
                 En el diálogo de impresión selecciona "Guardar como PDF"
               </p>
             </div>
           </div>
 
           {/* Right Area - Canvas Preview */}
-          <div className="flex-1 flex flex-col bg-gray-100">
+          <div className="flex-1 flex flex-col bg-slate-950">
             {/* Preview Toolbar */}
-            <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-gray-200">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="flex items-center justify-between px-4 py-2 bg-slate-900 border-b border-slate-700/50">
+              <div className="flex items-center gap-2 text-sm text-slate-300">
                 <Eye size={14} />
                 <span>Vista Previa</span>
-                <span className="text-xs text-gray-400">Carta (8.5" × 11")</span>
+                <span className="text-xs text-slate-500">Carta (8.5" × 11")</span>
               </div>
               <div className="flex items-center gap-1">
-                <button onClick={zoomOut} className="p-1.5 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors">
+                <button onClick={zoomOut} className="p-1.5 rounded hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition-colors">
                   <ZoomOut size={14} />
                 </button>
-                <span className="text-xs text-gray-500 w-12 text-center">{Math.round(previewScale * 100)}%</span>
-                <button onClick={zoomIn} className="p-1.5 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors">
+                <span className="text-xs text-slate-400 w-12 text-center">{Math.round(previewScale * 100)}%</span>
+                <button onClick={zoomIn} className="p-1.5 rounded hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition-colors">
                   <ZoomIn size={14} />
                 </button>
               </div>
