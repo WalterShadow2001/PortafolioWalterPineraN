@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -75,7 +75,35 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
   const [isGenerating, setIsGenerating] = useState(false);
   const [previewScale, setPreviewScale] = useState(0.52);
   const [fitStatus, setFitStatus] = useState<'checking' | 'fits' | 'overflow' | 'adjusted'>('checking');
+  const [showMobilePanel, setShowMobilePanel] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
+
+  // Detect mobile
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  // Auto-fit preview on mount and resize
+  useEffect(() => {
+    if (!open) return;
+    const fitPreview = () => {
+      const container = previewRef.current;
+      if (!container) return;
+      const availableWidth = container.clientWidth - 48; // padding
+      const availableHeight = container.clientHeight - 48;
+      const scaleW = availableWidth / 816;
+      const scaleH = availableHeight / 1056;
+      const newScale = Math.min(scaleW, scaleH, 0.75);
+      setPreviewScale(Math.max(newScale, 0.15));
+    };
+    setTimeout(fitPreview, 100);
+    window.addEventListener('resize', fitPreview);
+    return () => window.removeEventListener('resize', fitPreview);
+  }, [open, isMobile]);
   const renderRef = useRef<HTMLDivElement>(null);
 
   // Update color overrides when profile changes
@@ -236,272 +264,287 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
   };
 
   const zoomIn = () => setPreviewScale(s => Math.min(s + 0.05, 0.8));
-  const zoomOut = () => setPreviewScale(s => Math.max(s - 0.05, 0.3));
+  const zoomOut = () => setPreviewScale(s => Math.max(s - 0.05, 0.15));
+
+  const colorPresets = [
+    { primary: '#2563eb', secondary: '#60a5fa', accent: '#f59e0b', name: 'Azul' },
+    { primary: '#059669', secondary: '#34d399', accent: '#fbbf24', name: 'Verde' },
+    { primary: '#dc2626', secondary: '#f87171', accent: '#fbbf24', name: 'Rojo' },
+    { primary: '#7c3aed', secondary: '#a78bfa', accent: '#f472b6', name: 'Violeta' },
+    { primary: '#1a1a2e', secondary: '#16213e', accent: '#00d4ff', name: 'Tech' },
+    { primary: '#d97706', secondary: '#fbbf24', accent: '#92400e', name: 'Dorado' },
+    { primary: '#0f766e', secondary: '#2dd4bf', accent: '#f97316', name: 'Teal' },
+    { primary: '#be185d', secondary: '#f472b6', accent: '#9333ea', name: 'Rosa' },
+  ];
+
+  const tabButtons = [
+    { id: 'templates' as const, icon: Layout, label: 'Plantillas' },
+    { id: 'sections' as const, icon: Type, label: 'Secciones' },
+    { id: 'colors' as const, icon: Palette, label: 'Colores' },
+  ];
+
+  const actionArea = (
+    <div className="space-y-3">
+      <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium ${
+        fitStatus === 'fits' ? 'bg-green-900/40 text-green-400' :
+        fitStatus === 'adjusted' ? 'bg-yellow-900/40 text-yellow-400' :
+        fitStatus === 'overflow' ? 'bg-red-900/40 text-red-400' :
+        'bg-slate-800 text-slate-500'
+      }`}>
+        {fitStatus === 'fits' && <><Check size={14} /> Ajustado a una página</>}
+        {fitStatus === 'adjusted' && <><Sparkles size={14} /> Se ajustará automáticamente</>}
+        {fitStatus === 'overflow' && <><Maximize2 size={14} /> Se ajustará al imprimir</>}
+        {fitStatus === 'checking' && <span className="animate-pulse">Verificando...</span>}
+      </div>
+      <Button
+        onClick={() => { setIsGenerating(true); handlePrint(); setTimeout(() => setIsGenerating(false), 1000); }}
+        disabled={isGenerating}
+        className="w-full gap-2 py-4 md:py-6 text-sm md:text-base font-semibold shadow-lg hover:shadow-xl transition-all"
+        style={{
+          background: `linear-gradient(135deg, ${colorOverrides.primary}, ${colorOverrides.secondary})`,
+          color: 'white'
+        }}
+      >
+        {isGenerating ? (
+          <>
+            <div className="w-4 h-4 md:w-5 md:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            Abriendo...
+          </>
+        ) : (
+          <>
+            <FileDown size={16} />
+            Imprimir PDF
+          </>
+        )}
+      </Button>
+      {!isMobile && (
+        <p className="text-xs text-slate-500 text-center">
+          En el diálogo de impresión selecciona "Guardar como PDF"
+        </p>
+      )}
+    </div>
+  );
+
+  const tabContent = (compact: boolean = false) => (
+    <>
+      {activeTab === 'templates' && (
+        <div className="space-y-3 md:space-y-4">
+          {['Profesional', 'Creativo', 'Minimalista'].map(category => (
+            <div key={category}>
+              <h4 className="text-[10px] md:text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 md:mb-2">{category}</h4>
+              <div className={`grid gap-1.5 md:gap-2 ${compact ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                {templates.filter(t => t.category === category).map(template => (
+                  <button
+                    key={template.id}
+                    onClick={() => setSelectedTemplate(template.id)}
+                    className={`p-2 md:p-2.5 rounded-lg border text-left transition-all group ${
+                      selectedTemplate === template.id
+                        ? 'border-blue-400 bg-blue-500/15 ring-1 md:ring-2 ring-blue-400/30 shadow-sm shadow-blue-500/10'
+                        : 'border-slate-600/50 bg-slate-800 hover:border-blue-400/50 hover:shadow-sm'
+                    }`}
+                  >
+                    <span className={compact ? 'text-sm' : 'text-base'}>{template.icon}</span>
+                    <p className={`text-[10px] md:text-xs font-medium mt-0.5 md:mt-1 ${
+                      selectedTemplate === template.id ? 'text-blue-300' : 'text-slate-300'
+                    }`}>{template.name}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {activeTab === 'sections' && (
+        <div className="space-y-2 md:space-y-3">
+          {Object.entries({ experience: 'Experiencia', projects: 'Proyectos', skills: 'Habilidades', certificates: 'Certificados', contact: 'Contacto' }).map(([key, label]) => (
+            <div key={key} className="flex items-center justify-between p-2.5 md:p-3 rounded-lg bg-slate-800 border border-slate-700/50">
+              <Label className={`cursor-pointer ${compact ? 'text-xs' : 'text-sm'} text-slate-300`}>{label}</Label>
+              <Checkbox
+                checked={sections[key as keyof SectionVisibility]}
+                onCheckedChange={(checked) => setSections(prev => ({ ...prev, [key]: !!checked }))}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+      {activeTab === 'colors' && (
+        <div className="space-y-3 md:space-y-4">
+          <div className={`grid gap-2 md:gap-3 ${compact ? 'grid-cols-2' : 'grid-cols-2'}`}>
+            {[
+              { key: 'primary', label: 'Primario' },
+              { key: 'secondary', label: 'Secundario' },
+              { key: 'accent', label: 'Acento' },
+              { key: 'text', label: 'Texto' },
+            ].map(({ key, label }) => (
+              <div key={key} className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={colorOverrides[key as keyof ColorOverrides]}
+                  onChange={(e) => setColorOverrides(prev => ({ ...prev, [key]: e.target.value }))}
+                  className={`${compact ? 'w-7 h-7' : 'w-8 h-8'} rounded border border-slate-600 cursor-pointer bg-transparent`}
+                />
+                <div>
+                  <Label className="text-[10px] md:text-xs text-slate-400">{label}</Label>
+                  {!compact && <p className="text-[10px] text-slate-500 font-mono">{colorOverrides[key as keyof ColorOverrides]}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div>
+            <h4 className="text-[10px] md:text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 md:mb-2">Presets de Color</h4>
+            <div className={`grid gap-1.5 md:gap-2 ${compact ? 'grid-cols-4' : 'grid-cols-5'}`}>
+              {colorPresets.map((preset, i) => (
+                <button
+                  key={i}
+                  onClick={() => setColorOverrides({ primary: preset.primary, secondary: preset.secondary, accent: preset.accent, text: '#2d2d2d' })}
+                  className="group relative"
+                  title={preset.name}
+                >
+                  <div className={`${compact ? 'h-8' : 'h-10'} rounded-lg border border-slate-600/50 overflow-hidden hover:border-blue-400 transition-colors hover:shadow-sm`}>
+                    <div className="flex h-full">
+                      <div className="flex-1" style={{ backgroundColor: preset.primary }} />
+                      <div className="flex-1" style={{ backgroundColor: preset.secondary }} />
+                      <div className={compact ? 'w-1.5' : 'w-2'} style={{ backgroundColor: preset.accent }} />
+                    </div>
+                  </div>
+                  <span className={`text-slate-400 group-hover:text-slate-200 text-center block mt-0.5 ${compact ? 'text-[8px]' : 'text-[9px]'}`}>{preset.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+
+  const cvPreviewContent = (
+    <div
+      ref={renderRef}
+      className="cv-render-container"
+      style={{ width: 816, height: 'auto', overflow: 'hidden' }}
+      dangerouslySetInnerHTML={{
+        __html: `<style>${getTemplateStyles(selectedTemplate, modifiedProfile, colorOverrides)}.cv-qr-section{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;margin-top:14px;padding:12px 10px;border:1px solid rgba(0,0,0,0.08);border-radius:8px;background:rgba(255,255,255,0.6)}.cv-qr-code{padding:4px;background:#fff;border-radius:5px;line-height:0;box-shadow:0 1px 4px rgba(0,0,0,0.1)}.cv-qr-text{text-align:center}.cv-qr-title{font-size:8pt;font-weight:600;letter-spacing:0.5px;opacity:0.55}.cv-qr-url{font-size:7pt;font-family:monospace;opacity:0.4;margin-top:1px}.cv-qr-bottom{flex-direction:row;justify-content:flex-end;gap:8px;padding:8px 12px;margin-top:10px}</style>${generateCVContent(modifiedProfile, selectedTemplate, sections, colorOverrides, `<div class="cv-qr-section"><div class="cv-qr-code" style="width:80px;height:80px;background:repeating-conic-gradient(${colorOverrides?.primary || '#2563eb'} 0% 25%,#fff 0% 50%) 50%/10px 10px;border-radius:4px"></div><div class="cv-qr-text"><div class="cv-qr-title">Escanea para ver portafolio</div><div class="cv-qr-url">portafolio-walter-pineran.vercel.app</div></div></div>`, `<div class="cv-qr-section cv-qr-bottom"><div class="cv-qr-code" style="width:80px;height:80px;background:repeating-conic-gradient(${colorOverrides?.primary || '#2563eb'} 0% 25%,#fff 0% 50%) 50%/10px 10px;border-radius:4px"></div><div class="cv-qr-text"><div class="cv-qr-title">Escanea para ver portafolio</div><div class="cv-qr-url">portafolio-walter-pineran.vercel.app</div></div></div>`)}`
+      }}
+    />
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[100vw] max-w-[100vw] max-h-[100vh] w-[100vw] h-[100vh] p-0 gap-0 overflow-hidden rounded-none border-0" showCloseButton={true} style={{ background: '#0f172a' }}>
-        <DialogHeader className="px-6 pt-4 pb-3 border-b border-slate-700/50 bg-slate-900">
-          <DialogTitle className="text-lg flex items-center gap-2 text-white">
-            <Layout size={20} className="text-blue-400" />
-            Generador de CV Inteligente
+        <DialogHeader className="px-4 md:px-6 pt-3 md:pt-4 pb-2 md:pb-3 border-b border-slate-700/50 bg-slate-900 flex-row items-center justify-between space-y-0">
+          <DialogTitle className="text-sm md:text-lg flex items-center gap-2 text-white">
+            <Layout size={18} className="text-blue-400" />
+            Generador de CV
           </DialogTitle>
+          {isMobile && (
+            <button
+              onClick={() => setShowMobilePanel(!showMobilePanel)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/20 text-blue-400 text-xs font-medium hover:bg-blue-500/30 transition-colors"
+            >
+              <Palette size={14} />
+              {showMobilePanel ? 'Vista Previa' : 'Opciones'}
+            </button>
+          )}
         </DialogHeader>
 
-        <div className="flex h-[calc(100vh-56px)]">
-          {/* Left Sidebar - Controls */}
-          <div className="w-[460px] border-r border-slate-700/50 flex flex-col bg-slate-900">
-            {/* Tab Navigation */}
-            <div className="flex border-b border-slate-700/50 bg-slate-800">
-              {[
-                { id: 'templates' as const, icon: Layout, label: 'Plantillas' },
-                { id: 'sections' as const, icon: Type, label: 'Secciones' },
-                { id: 'colors' as const, icon: Palette, label: 'Colores' },
-              ].map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex-1 py-3 px-2 text-xs font-medium flex flex-col items-center gap-1 transition-all border-b-2 ${
-                    activeTab === tab.id
-                      ? 'text-blue-400 border-blue-400 bg-slate-700/50'
-                      : 'text-slate-400 border-transparent hover:text-slate-200 hover:bg-slate-700/30'
-                  }`}
-                >
-                  <tab.icon size={16} />
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Tab Content */}
-            <div className="flex-1 overflow-y-auto p-4">
-              {activeTab === 'templates' && (
-                <div className="space-y-4">
-                  {['Profesional', 'Creativo', 'Minimalista'].map(category => (
-                    <div key={category}>
-                      <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{category}</h4>
-                      <div className="grid grid-cols-2 gap-2">
-                        {templates.filter(t => t.category === category).map(template => (
-                          <button
-                            key={template.id}
-                            onClick={() => setSelectedTemplate(template.id)}
-                            className={`p-2.5 rounded-lg border text-left transition-all group ${
-                              selectedTemplate === template.id
-                                ? 'border-blue-400 bg-blue-500/15 ring-2 ring-blue-400/30 shadow-sm shadow-blue-500/10'
-                                : 'border-slate-600/50 bg-slate-800 hover:border-blue-400/50 hover:shadow-sm'
-                            }`}
-                          >
-                            <span className="text-base">{template.icon}</span>
-                            <p className={`text-xs font-medium mt-1 ${
-                              selectedTemplate === template.id ? 'text-blue-300' : 'text-slate-300'
-                            }`}>{template.name}</p>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {activeTab === 'sections' && (
-                <div className="space-y-3">
-                  <p className="text-xs text-slate-400 mb-4">Selecciona las secciones que aparecerán en tu CV</p>
-                  {[
-                    { key: 'experience', label: 'Experiencia y Educación', icon: '💼' },
-                    { key: 'projects', label: 'Proyectos', icon: '📁' },
-                    { key: 'skills', label: 'Habilidades', icon: '💻' },
-                    { key: 'certificates', label: 'Certificados', icon: '🏆' },
-                    { key: 'contact', label: 'Contacto', icon: '📧' },
-                  ].map(item => (
-                    <div key={item.key} className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
-                      sections[item.key as keyof SectionVisibility]
-                        ? 'border-blue-400/40 bg-blue-500/10'
-                        : 'border-slate-600/50 bg-slate-800'
-                    }`}>
-                      <Checkbox
-                        id={`sec-${item.key}`}
-                        checked={sections[item.key as keyof SectionVisibility]}
-                        onCheckedChange={(checked) =>
-                          setSections({ ...sections, [item.key]: checked as boolean })
-                        }
-                      />
-                      <Label htmlFor={`sec-${item.key}`} className="cursor-pointer flex items-center gap-2 text-sm flex-1">
-                        <span>{item.icon}</span>
-                        <span className={sections[item.key as keyof SectionVisibility] ? 'text-slate-200' : 'text-slate-500'}>
-                          {item.label}
-                        </span>
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {activeTab === 'colors' && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs text-slate-400">Personaliza los colores del CV</p>
+        {isMobile ? (
+          <div className="flex flex-col h-[calc(100vh-48px)]">
+            {showMobilePanel ? (
+              <div className="flex-1 flex flex-col bg-slate-900 overflow-hidden">
+                <div className="flex border-b border-slate-700/50 bg-slate-800">
+                  {tabButtons.map(tab => (
                     <button
-                      onClick={resetColors}
-                      className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`flex-1 py-2.5 px-2 text-xs font-medium flex flex-col items-center gap-0.5 transition-all border-b-2 ${
+                        activeTab === tab.id
+                          ? 'text-blue-400 border-blue-400 bg-slate-700/50'
+                          : 'text-slate-400 border-transparent hover:text-slate-200'
+                      }`}
                     >
-                      <RotateCcw size={10} /> Reset
+                      <tab.icon size={14} />
+                      {tab.label}
                     </button>
-                  </div>
-                  {[
-                    { key: 'primary', label: 'Color Principal', desc: 'Títulos y acentos' },
-                    { key: 'secondary', label: 'Color Secundario', desc: 'Barras y detalles' },
-                    { key: 'accent', label: 'Color Acento', desc: 'Resaltados' },
-                    { key: 'text', label: 'Color de Texto', desc: 'Texto principal' },
-                  ].map(item => (
-                    <div key={item.key} className="p-3 rounded-lg border border-slate-600/50 bg-slate-800">
-                      <div className="flex items-center justify-between mb-2">
-                        <div>
-                          <p className="text-sm font-medium text-slate-200">{item.label}</p>
-                          <p className="text-xs text-slate-500">{item.desc}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-mono text-slate-400">
-                            {colorOverrides[item.key as keyof ColorOverrides]}
-                          </span>
-                          <label className="w-8 h-8 rounded-lg border-2 border-slate-600 overflow-hidden cursor-pointer hover:border-blue-400 transition-colors relative">
-                            <input
-                              type="color"
-                              value={colorOverrides[item.key as keyof ColorOverrides]}
-                              onChange={(e) => setColorOverrides({ ...colorOverrides, [item.key]: e.target.value })}
-                              className="absolute inset-0 w-full h-full cursor-pointer opacity-0"
-                            />
-                            <div
-                              className="w-full h-full"
-                              style={{ backgroundColor: colorOverrides[item.key as keyof ColorOverrides] }}
-                            />
-                          </label>
-                        </div>
-                      </div>
-                    </div>
                   ))}
-
-                  {/* Quick Color Presets */}
-                  <div className="mt-4">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Paletas rápidas</p>
-                    <div className="grid grid-cols-4 gap-2">
-                      {[
-                        { primary: '#2563eb', secondary: '#60a5fa', accent: '#f59e0b', text: '#1f2937', name: 'Azul' },
-                        { primary: '#059669', secondary: '#34d399', accent: '#fbbf24', text: '#1f2937', name: 'Verde' },
-                        { primary: '#dc2626', secondary: '#f87171', accent: '#fbbf24', text: '#1f2937', name: 'Rojo' },
-                        { primary: '#7c3aed', secondary: '#a78bfa', accent: '#f472b6', text: '#1f2937', name: 'Violeta' },
-                        { primary: '#1a1a2e', secondary: '#16213e', accent: '#00d4ff', text: '#2d2d2d', name: 'Tech' },
-                        { primary: '#d97706', secondary: '#fbbf24', accent: '#92400e', text: '#1f2937', name: 'Dorado' },
-                        { primary: '#0f766e', secondary: '#2dd4bf', accent: '#f97316', text: '#1f2937', name: 'Teal' },
-                        { primary: '#be185d', secondary: '#f472b6', accent: '#9333ea', text: '#1f2937', name: 'Rosa' },
-                      ].map(preset => (
-                        <button
-                          key={preset.name}
-                          onClick={() => setColorOverrides({ primary: preset.primary, secondary: preset.secondary, accent: preset.accent, text: preset.text })}
-                          className="group relative"
-                          title={preset.name}
-                        >
-                          <div className="h-10 rounded-lg border border-slate-600/50 overflow-hidden hover:border-blue-400 transition-colors hover:shadow-sm">
-                            <div className="flex h-full">
-                              <div className="flex-1" style={{ backgroundColor: preset.primary }} />
-                              <div className="flex-1" style={{ backgroundColor: preset.secondary }} />
-                              <div className="w-2" style={{ backgroundColor: preset.accent }} />
-                            </div>
-                          </div>
-                          <span className="text-[9px] text-slate-400 group-hover:text-slate-200 text-center block mt-0.5">{preset.name}</span>
-                        </button>
-                      ))}
+                </div>
+                <div className="flex-1 overflow-y-auto p-3">
+                  {tabContent(true)}
+                </div>
+                <div className="p-3 border-t border-slate-700/50 bg-slate-900">
+                  {actionArea}
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col bg-slate-950" ref={previewRef}>
+                <div className="flex-1 overflow-auto flex justify-center p-3">
+                  <div className="relative" style={{ width: 816 * previewScale, height: 1056 * previewScale }}>
+                    <div
+                      className="absolute rounded shadow-2xl bg-white"
+                      style={{ width: 816, height: 1056, transform: `scale(${previewScale})`, transformOrigin: 'top left' }}
+                    >
+                      {cvPreviewContent}
                     </div>
                   </div>
                 </div>
-              )}
-            </div>
-
-            {/* Bottom Action Area */}
-            <div className="p-4 border-t border-slate-700/50 bg-slate-900 space-y-3">
-              {/* Fit Status Indicator */}
-              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium ${
-                fitStatus === 'fits' ? 'bg-green-900/40 text-green-400' :
-                fitStatus === 'adjusted' ? 'bg-yellow-900/40 text-yellow-400' :
-                fitStatus === 'overflow' ? 'bg-red-900/40 text-red-400' :
-                'bg-slate-800 text-slate-500'
-              }`}>
-                {fitStatus === 'fits' && <><Check size={14} /> Ajustado a una página</>}
-                {fitStatus === 'adjusted' && <><Sparkles size={14} /> Se ajustará automáticamente</>}
-                {fitStatus === 'overflow' && <><Maximize2 size={14} /> Se ajustará al imprimir</>}
-                {fitStatus === 'checking' && <span className="animate-pulse">Verificando...</span>}
               </div>
-
-              {/* Print Button */}
-              <Button
-                onClick={() => { setIsGenerating(true); handlePrint(); setTimeout(() => setIsGenerating(false), 1000); }}
-                disabled={isGenerating}
-                className="w-full gap-2 py-6 text-base font-semibold shadow-lg hover:shadow-xl transition-all"
-                style={{
-                  background: `linear-gradient(135deg, ${colorOverrides.primary}, ${colorOverrides.secondary})`,
-                  color: 'white'
-                }}
-              >
-                {isGenerating ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Abriendo impresión...
-                  </>
-                ) : (
-                  <>
-                    <FileDown size={18} />
-                    Imprimir CV en PDF
-                  </>
-                )}
-              </Button>
-
-              <p className="text-xs text-slate-500 text-center">
-                En el diálogo de impresión selecciona "Guardar como PDF"
-              </p>
-            </div>
+            )}
           </div>
-
-          {/* Right Area - Canvas Preview */}
-          <div className="flex-1 flex flex-col bg-slate-950">
-            {/* Preview Toolbar */}
-            <div className="flex items-center justify-between px-4 py-2 bg-slate-900 border-b border-slate-700/50">
-              <div className="flex items-center gap-2 text-sm text-slate-300">
-                <Eye size={14} />
-                <span>Vista Previa</span>
-                <span className="text-xs text-slate-500">Carta (8.5" × 11")</span>
+        ) : (
+          <div className="flex h-[calc(100vh-56px)]">
+            <div className="w-[460px] border-r border-slate-700/50 flex flex-col bg-slate-900">
+              <div className="flex border-b border-slate-700/50 bg-slate-800">
+                {tabButtons.map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex-1 py-3 px-2 text-xs font-medium flex flex-col items-center gap-1 transition-all border-b-2 ${
+                      activeTab === tab.id
+                        ? 'text-blue-400 border-blue-400 bg-slate-700/50'
+                        : 'text-slate-400 border-transparent hover:text-slate-200 hover:bg-slate-700/30'
+                    }`}
+                  >
+                    <tab.icon size={16} />
+                    {tab.label}
+                  </button>
+                ))}
               </div>
-              <div className="flex items-center gap-1">
-                <button onClick={zoomOut} className="p-1.5 rounded hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition-colors">
-                  <ZoomOut size={14} />
-                </button>
-                <span className="text-xs text-slate-400 w-12 text-center">{Math.round(previewScale * 100)}%</span>
-                <button onClick={zoomIn} className="p-1.5 rounded hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition-colors">
-                  <ZoomIn size={14} />
-                </button>
+              <div className="flex-1 overflow-y-auto p-4">
+                {tabContent(false)}
+              </div>
+              <div className="p-4 border-t border-slate-700/50 bg-slate-900 space-y-3">
+                {actionArea}
               </div>
             </div>
-
-            {/* Canvas Preview Area */}
-            <div className="flex-1 overflow-auto flex justify-center p-6">
-              <div className="relative" style={{ width: 816 * previewScale, height: 1056 * previewScale }}>
-                {/* Letter-size shadow */}
-                <div
-                  className="absolute rounded shadow-2xl bg-white"
-                  style={{ width: 816, height: 1056, transform: `scale(${previewScale})`, transformOrigin: 'top left' }}
-                >
-                  {/* Hidden render container at full size for PDF generation */}
+            <div className="flex-1 flex flex-col bg-slate-950" ref={previewRef}>
+              <div className="flex items-center justify-between px-4 py-2 bg-slate-900 border-b border-slate-700/50">
+                <div className="flex items-center gap-2 text-sm text-slate-300">
+                  <Eye size={14} />
+                  <span>Vista Previa</span>
+                  <span className="text-xs text-slate-500 hidden md:inline">Carta (8.5" × 11")</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button onClick={zoomOut} className="p-1.5 rounded hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition-colors">
+                    <ZoomOut size={14} />
+                  </button>
+                  <span className="text-xs text-slate-400 w-12 text-center">{Math.round(previewScale * 100)}%</span>
+                  <button onClick={zoomIn} className="p-1.5 rounded hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition-colors">
+                    <ZoomIn size={14} />
+                  </button>
+                </div>
+              </div>
+              <div className="flex-1 overflow-auto flex justify-center p-6">
+                <div className="relative" style={{ width: 816 * previewScale, height: 1056 * previewScale }}>
                   <div
-                    ref={renderRef}
-                    className="cv-render-container"
-                    style={{ width: 816, height: 'auto', overflow: 'hidden' }}
-                    dangerouslySetInnerHTML={{
-                      __html: `<style>${getTemplateStyles(selectedTemplate, modifiedProfile, colorOverrides)}.cv-qr-section{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;margin-top:14px;padding:12px 10px;border:1px solid rgba(0,0,0,0.08);border-radius:8px;background:rgba(255,255,255,0.6)}.cv-qr-code{padding:4px;background:#fff;border-radius:5px;line-height:0;box-shadow:0 1px 4px rgba(0,0,0,0.1)}.cv-qr-text{text-align:center}.cv-qr-title{font-size:8pt;font-weight:600;letter-spacing:0.5px;opacity:0.55}.cv-qr-url{font-size:7pt;font-family:monospace;opacity:0.4;margin-top:1px}.cv-qr-bottom{flex-direction:row;justify-content:flex-end;gap:8px;padding:8px 12px;margin-top:10px}</style>${generateCVContent(modifiedProfile, selectedTemplate, sections, colorOverrides, `<div class="cv-qr-section"><div class="cv-qr-code" style="width:80px;height:80px;background:repeating-conic-gradient(${colorOverrides?.primary || '#2563eb'} 0% 25%,#fff 0% 50%) 50%/10px 10px;border-radius:4px"></div><div class="cv-qr-text"><div class="cv-qr-title">Escanea para ver portafolio</div><div class="cv-qr-url">portafolio-walter-pineran.vercel.app</div></div></div>`, `<div class="cv-qr-section cv-qr-bottom"><div class="cv-qr-code" style="width:80px;height:80px;background:repeating-conic-gradient(${colorOverrides?.primary || '#2563eb'} 0% 25%,#fff 0% 50%) 50%/10px 10px;border-radius:4px"></div><div class="cv-qr-text"><div class="cv-qr-title">Escanea para ver portafolio</div><div class="cv-qr-url">portafolio-walter-pineran.vercel.app</div></div></div>`)}`
-                    }}
-                  />
+                    className="absolute rounded shadow-2xl bg-white"
+                    style={{ width: 816, height: 1056, transform: `scale(${previewScale})`, transformOrigin: 'top left' }}
+                  >
+                    {cvPreviewContent}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
       </DialogContent>
     </Dialog>
   );

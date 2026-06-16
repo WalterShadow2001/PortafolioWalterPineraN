@@ -330,13 +330,13 @@ function PortfolioApp() {
                     🔒 Acceder
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent className="sm:max-w-md w-[calc(100%-2rem)] mx-auto">
                   <DialogHeader>
-                    <DialogTitle>🔐 Modo Editor</DialogTitle>
+                    <DialogTitle className="flex items-center gap-2 text-lg">🔐 Modo Editor</DialogTitle>
                   </DialogHeader>
-                  <div className="space-y-4 pt-4">
+                  <div className="space-y-4 pt-2">
                     <div>
-                      <Label>Contraseña</Label>
+                      <Label className="text-sm font-medium">Contraseña</Label>
                       <div className="relative mt-2 flex items-center">
                         <Input
                           type={showPassword ? 'text' : 'password'}
