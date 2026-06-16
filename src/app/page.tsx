@@ -221,7 +221,8 @@ function PortfolioApp() {
   };
 
   // Loading state - themed loading screen (only when NO data is available yet)
-  if ((loading && !profile) || (checking && !profile)) {
+  // Auth check should NOT block the page - content shows as soon as profile data arrives
+  if (loading && !profile) {
     let savedTheme = 'default';
     try { savedTheme = localStorage.getItem('portfolio-theme') || 'default'; } catch {}
     const loadingColors = getThemeLoadingColors(savedTheme);
@@ -961,8 +962,25 @@ function EditorPanel({ profile, updateProfile, onClose }: any) {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Guardar datos del perfil
-      await updateProfile(currentData);
+      // Guardar datos del perfil con reintento automático
+      let profileSaved = false;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          await updateProfile(currentData);
+          profileSaved = true;
+          break;
+        } catch (e) {
+          console.error(`Error saving profile (attempt ${attempt}/3):`, e);
+          if (attempt < 3) {
+            await new Promise(r => setTimeout(r, 1000 * attempt)); // espera progresiva
+          }
+        }
+      }
+      
+      if (!profileSaved) {
+        toast.error('Error al guardar. Verifica tu conexión e intenta de nuevo.');
+        return;
+      }
       
       // Guardar redes sociales
       const socialLinksArray = Object.entries(currentSocialLinks)
@@ -1006,7 +1024,7 @@ function EditorPanel({ profile, updateProfile, onClose }: any) {
       setTimeout(() => window.location.reload(), 500);
     } catch (error) {
       console.error('Error saving:', error);
-      toast.error('Error al guardar');
+      toast.error('Error al guardar. Intenta de nuevo.');
     } finally {
       setSaving(false);
     }

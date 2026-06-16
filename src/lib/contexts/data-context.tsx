@@ -136,12 +136,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (isRefreshingRef.current) return;
     isRefreshingRef.current = true;
     try {
-      const res = await fetch('/api/portfolio');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+      const res = await fetch('/api/portfolio', { signal: controller.signal });
+      clearTimeout(timeoutId);
       const data = await res.json();
       setProfile(data);
       setCachedProfile(data);
     } catch (error) {
       console.error('Error fetching profile:', error);
+      // If fetch fails, try to load from cache
+      const cached = getCachedProfile();
+      if (cached && !profile) {
+        setProfile(cached);
+      }
     } finally {
       isRefreshingRef.current = false;
       setLoading(false);
