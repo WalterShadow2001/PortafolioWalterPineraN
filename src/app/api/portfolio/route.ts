@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 // In-memory cache for GET responses (fast reads)
 let cachedProfile: any = null;
 let cacheTimestamp = 0;
-const CACHE_TTL = 5000; // 5 seconds cache
+const CACHE_TTL = 30000; // 30 seconds cache for faster repeat loads
 
 function invalidateCache() {
   cachedProfile = null;
@@ -23,7 +23,7 @@ export async function GET() {
     if (cachedProfile && (now - cacheTimestamp) < CACHE_TTL) {
       return NextResponse.json(cachedProfile, {
         headers: {
-          'Cache-Control': 'public, s-maxage=5, stale-while-revalidate=10',
+          'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
         },
       });
     }
@@ -59,7 +59,7 @@ export async function GET() {
       cacheTimestamp = now;
       return NextResponse.json(newProfile, {
         headers: {
-          'Cache-Control': 'public, s-maxage=5, stale-while-revalidate=10',
+          'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
         },
       });
     }

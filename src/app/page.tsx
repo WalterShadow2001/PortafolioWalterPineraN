@@ -220,8 +220,8 @@ function PortfolioApp() {
     setEditingSkill(null);
   };
 
-  // Loading state - themed loading screen
-  if (loading || checking) {
+  // Loading state - themed loading screen (only when NO data is available yet)
+  if ((loading && !profile) || (checking && !profile)) {
     let savedTheme = 'default';
     try { savedTheme = localStorage.getItem('portfolio-theme') || 'default'; } catch {}
     const loadingColors = getThemeLoadingColors(savedTheme);

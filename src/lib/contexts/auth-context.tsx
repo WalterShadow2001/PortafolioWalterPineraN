@@ -19,7 +19,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function checkAuth() {
       try {
-        const res = await fetch('/api/auth/verify');
+        // Timeout after 3 seconds to avoid blocking the page
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        const res = await fetch('/api/auth/verify', { signal: controller.signal });
+        clearTimeout(timeoutId);
         const data = await res.json();
         setIsAuthenticated(data.authenticated === true);
       } catch {

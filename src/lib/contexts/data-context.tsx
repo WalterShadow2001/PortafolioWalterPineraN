@@ -98,11 +98,38 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
+const PROFILE_CACHE_KEY = 'portfolio-profile-cache';
+const PROFILE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes client cache
+
+function getCachedProfile(): Profile | null {
+  try {
+    const raw = localStorage.getItem(PROFILE_CACHE_KEY);
+    if (!raw) return null;
+    const { data, timestamp } = JSON.parse(raw);
+    if (Date.now() - timestamp > PROFILE_CACHE_TTL) {
+      localStorage.removeItem(PROFILE_CACHE_KEY);
+      return null;
+    }
+    return data as Profile;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedProfile(data: Profile) {
+  try {
+    localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify({ data, timestamp: Date.now() }));
+  } catch {
+    // localStorage full or unavailable
+  }
+}
+
 export function DataProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isRefreshingRef = useRef(false);
+  const hasInitializedRef = useRef(false);
 
   const refreshProfile = useCallback(async () => {
     // Prevent duplicate concurrent refreshes
@@ -112,6 +139,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const res = await fetch('/api/portfolio');
       const data = await res.json();
       setProfile(data);
+      setCachedProfile(data);
     } catch (error) {
       console.error('Error fetching profile:', error);
     } finally {
@@ -131,6 +159,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [refreshProfile]);
 
   useEffect(() => {
+    // Try to load from cache first for instant display
+    if (!hasInitializedRef.current) {
+      hasInitializedRef.current = true;
+      const cached = getCachedProfile();
+      if (cached) {
+        setProfile(cached);
+        setLoading(false);
+        // Still refresh in background to get latest data
+        refreshProfile();
+        return;
+      }
+    }
     refreshProfile();
     return () => {
       if (refreshTimerRef.current) {
