@@ -80,6 +80,7 @@ interface Profile {
 interface DataContextType {
   profile: Profile | null;
   loading: boolean;
+  initialLoading: boolean;
   refreshProfile: () => Promise<void>;
   updateProfile: (data: Partial<Profile>) => Promise<void>;
   addProject: (data: Partial<Project>) => Promise<void>;
@@ -101,13 +102,16 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 export function DataProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isRefreshingRef = useRef(false);
+  const hasLoadedOnceRef = useRef(false);
 
   const refreshProfile = useCallback(async () => {
     // Prevent duplicate concurrent refreshes
     if (isRefreshingRef.current) return;
     isRefreshingRef.current = true;
+    setLoading(true);
     try {
       const res = await fetch('/api/portfolio');
       const data = await res.json();
@@ -117,6 +121,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     } finally {
       isRefreshingRef.current = false;
       setLoading(false);
+      if (!hasLoadedOnceRef.current) {
+        hasLoadedOnceRef.current = true;
+        setInitialLoading(false);
+      }
     }
   }, []);
 
@@ -262,6 +270,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       value={{
         profile,
         loading,
+        initialLoading,
         refreshProfile,
         updateProfile,
         addProject,

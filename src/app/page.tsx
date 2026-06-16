@@ -59,10 +59,10 @@ const socialPlatforms = [
 ];
 
 function PortfolioApp() {
-  const { profile, loading, updateProfile, addProject, updateProject, deleteProject, 
+  const { profile, loading, initialLoading, updateProfile, addProject, updateProject, deleteProject, 
           addCertificate, updateCertificate, deleteCertificate,
           addExperience, updateExperience, deleteExperience,
-          addSkill, updateSkill, deleteSkill } = useData();
+          addSkill, updateSkill, deleteSkill, refreshProfile } = useData();
   const { isAuthenticated, login, logout, checking } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
   const [password, setPassword] = useState('');
@@ -220,8 +220,8 @@ function PortfolioApp() {
     setEditingSkill(null);
   };
 
-  // Loading state - themed loading screen
-  if (loading || checking) {
+  // Loading state - themed loading screen (only on initial load)
+  if (initialLoading || checking) {
     let savedTheme = 'default';
     try { savedTheme = localStorage.getItem('portfolio-theme') || 'default'; } catch {}
     const loadingColors = getThemeLoadingColors(savedTheme);
@@ -1003,7 +1003,7 @@ function EditorPanel({ profile, updateProfile, onClose }: any) {
       }
       
       toast.success('✅ Cambios guardados');
-      setTimeout(() => window.location.reload(), 500);
+      await refreshProfile();
     } catch (error) {
       console.error('Error saving:', error);
       toast.error('Error al guardar');
