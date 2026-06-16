@@ -528,7 +528,7 @@ function PortfolioApp() {
                             <p style={{ color: profile.primaryColor }} className="font-medium">{exp.company}</p>
                           </div>
                           {isAuthenticated && (
-                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                               <Button size="sm" variant="ghost" onClick={() => setEditingExperience(exp)} className="h-8 w-8 p-0">
                                 <Edit2 size={14} />
                               </Button>
@@ -566,7 +566,7 @@ function PortfolioApp() {
                             <p style={{ color: profile.secondaryColor }} className="font-medium">{exp.company}</p>
                           </div>
                           {isAuthenticated && (
-                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                               <Button size="sm" variant="ghost" onClick={() => setEditingExperience(exp)} className="h-8 w-8 p-0">
                                 <Edit2 size={14} />
                               </Button>
@@ -629,7 +629,7 @@ function PortfolioApp() {
                         </div>
                       )}
                       {isAuthenticated && (
-                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute top-2 right-2 flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                           <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); setEditingProject(project); }} className="h-8 w-8 p-0 bg-white/90 hover:bg-white">
                             <Edit2 size={14} />
                           </Button>
@@ -708,7 +708,7 @@ function PortfolioApp() {
                           <div className="flex items-center gap-2">
                             <span style={{ color: profile.primaryColor }}>{skill.level}%</span>
                             {isAuthenticated && (
-                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                                 <Button size="sm" variant="ghost" onClick={() => setEditingSkill(skill)} className="h-5 w-5 p-0">
                                   <Edit2 size={12} />
                                 </Button>
@@ -790,7 +790,7 @@ function PortfolioApp() {
                         </div>
                       )}
                       {isAuthenticated && (
-                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute top-2 right-2 flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                           <Button size="sm" variant="secondary" onClick={() => setEditingCertificate(cert)} className="h-8 w-8 p-0 bg-white/90 hover:bg-white">
                             <Edit2 size={14} />
                           </Button>
@@ -835,20 +835,20 @@ function PortfolioApp() {
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="space-y-4">
             {profile.email && (
               <a href={`mailto:${profile.email}`} className="flex items-center justify-center gap-3 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-100" style={currentTheme.cardStyle}>
-                <Mail style={{ color: profile.primaryColor }} size={24} />
-                <span className="text-lg" style={{ color: profile.textColor }}>{profile.email}</span>
+                <Mail style={{ color: profile.primaryColor }} size={24} className="flex-shrink-0" />
+                <span className="text-base md:text-lg break-all" style={{ color: profile.textColor }}>{profile.email}</span>
               </a>
             )}
             {profile.phone && (
               <a href={`tel:${profile.phone}`} className="flex items-center justify-center gap-3 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-100" style={currentTheme.cardStyle}>
-                <Phone style={{ color: profile.primaryColor }} size={24} />
-                <span className="text-lg" style={{ color: profile.textColor }}>{profile.phone}</span>
+                <Phone style={{ color: profile.primaryColor }} size={24} className="flex-shrink-0" />
+                <span className="text-base md:text-lg" style={{ color: profile.textColor }}>{profile.phone}</span>
               </a>
             )}
             {profile.location && (
               <div className="flex items-center justify-center gap-3 p-4 bg-white rounded-xl shadow-sm border border-gray-100" style={currentTheme.cardStyle}>
-                <MapPin style={{ color: profile.primaryColor }} size={24} />
-                <span className="text-lg" style={{ color: profile.textColor }}>{profile.location}</span>
+                <MapPin style={{ color: profile.primaryColor }} size={24} className="flex-shrink-0" />
+                <span className="text-base md:text-lg" style={{ color: profile.textColor }}>{profile.location}</span>
               </div>
             )}
           </motion.div>
