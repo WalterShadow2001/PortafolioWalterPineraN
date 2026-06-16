@@ -75,7 +75,7 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
   const [isGenerating, setIsGenerating] = useState(false);
   const [previewScale, setPreviewScale] = useState(0.52);
   const [fitStatus, setFitStatus] = useState<'checking' | 'fits' | 'overflow' | 'adjusted'>('checking');
-  const [showMobilePanel, setShowMobilePanel] = useState(false);
+  const [showMobilePanel, setShowMobilePanel] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
 
@@ -317,7 +317,11 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
           </>
         )}
       </Button>
-      {!isMobile && (
+      {isMobile ? (
+        <p className="text-xs text-slate-500 text-center">
+          Se abrirá una nueva pestaña. Usa el menú del navegador para guardar como PDF.
+        </p>
+      ) : (
         <p className="text-xs text-slate-500 text-center">
           En el diálogo de impresión selecciona "Guardar como PDF"
         </p>
@@ -439,10 +443,13 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
           {isMobile && (
             <button
               onClick={() => setShowMobilePanel(!showMobilePanel)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/20 text-blue-400 text-xs font-medium hover:bg-blue-500/30 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all active:scale-95 shadow-md"
+              style={{
+                backgroundColor: showMobilePanel ? 'rgba(59,130,246,0.2)' : colorOverrides.primary,
+                color: showMobilePanel ? '#60a5fa' : '#ffffff'
+              }}
             >
-              <Palette size={14} />
-              {showMobilePanel ? 'Vista Previa' : 'Opciones'}
+              {showMobilePanel ? <><Eye size={16} /> Vista Previa</> : <><Palette size={16} /> Opciones</>}
             </button>
           )}
         </DialogHeader>
@@ -450,7 +457,7 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
         {isMobile ? (
           <div className="flex flex-col h-[calc(100vh-48px)]">
             {showMobilePanel ? (
-              <div className="flex-1 flex flex-col bg-slate-900 overflow-hidden">
+              <div className="flex-1 flex flex-col bg-slate-900 overflow-hidden relative">
                 <div className="flex border-b border-slate-700/50 bg-slate-800">
                   {tabButtons.map(tab => (
                     <button
@@ -467,15 +474,22 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
                     </button>
                   ))}
                 </div>
-                <div className="flex-1 overflow-y-auto p-3">
+                <div className="flex-1 overflow-y-auto p-3 pb-20">
                   {tabContent(true)}
                 </div>
-                <div className="p-3 border-t border-slate-700/50 bg-slate-900">
+                <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-slate-700/50 bg-slate-900 space-y-2">
                   {actionArea}
+                  <button
+                    onClick={() => setShowMobilePanel(false)}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-slate-600 text-slate-300 text-sm font-medium hover:bg-slate-800 active:scale-95 transition-all"
+                  >
+                    <Eye size={16} />
+                    Ver Vista Previa
+                  </button>
                 </div>
               </div>
             ) : (
-              <div className="flex-1 flex flex-col bg-slate-950" ref={previewRef}>
+              <div className="flex-1 flex flex-col bg-slate-950 relative" ref={previewRef}>
                 <div className="flex-1 overflow-auto flex justify-center p-3">
                   <div className="relative" style={{ width: 816 * previewScale, height: 1056 * previewScale }}>
                     <div
@@ -486,6 +500,15 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
                     </div>
                   </div>
                 </div>
+                {/* Floating button to switch back to options */}
+                <button
+                  onClick={() => setShowMobilePanel(true)}
+                  className="absolute bottom-4 right-4 flex items-center gap-2 px-4 py-3 rounded-full shadow-xl text-white font-bold text-sm active:scale-95 transition-all"
+                  style={{ backgroundColor: colorOverrides.primary }}
+                >
+                  <Palette size={18} />
+                  Opciones
+                </button>
               </div>
             )}
           </div>

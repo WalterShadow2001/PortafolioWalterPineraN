@@ -4,8 +4,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { AuthProvider, useAuth } from '@/lib/contexts/auth-context';
 import { DataProvider, useData } from '@/lib/contexts/data-context';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Loader2, ChevronUp, 
+import {
+  Loader2, ChevronUp, Menu, X as XIcon,
   Mail, Phone, MapPin, Calendar, ExternalLink, 
   Briefcase, GraduationCap, Award, Code, 
   Camera, X, Download, Eye, Edit2, Trash2, Plus,
@@ -71,6 +71,7 @@ function PortfolioApp() {
   const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
   const [showPdfDialog, setShowPdfDialog] = useState(false);
   const [activeSection, setActiveSection] = useState('hero');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   // Edit modals state
   const [editingProject, setEditingProject] = useState<any>(null);
@@ -316,6 +317,13 @@ function PortfolioApp() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Mobile menu button */}
+            <button
+              className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <XIcon size={20} /> : <Menu size={20} />}
+            </button>
             {isAuthenticated ? (
               <>
                 <Button onClick={() => setShowEditor(!showEditor)} size="sm" className="gap-2" style={{ backgroundColor: profile.primaryColor, color: 'white' }}>
@@ -330,13 +338,13 @@ function PortfolioApp() {
                     🔒 Acceder
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-md w-[calc(100%-2rem)] mx-auto">
+                <DialogContent className="sm:max-w-md w-[calc(100%-2rem)] mx-auto" style={{ backgroundColor: profile.backgroundColor || '#ffffff', borderColor: profile.primaryColor, color: profile.textColor || '#1f2937' }}>
                   <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2 text-lg">🔐 Modo Editor</DialogTitle>
+                    <DialogTitle className="flex items-center gap-2 text-lg" style={{ color: profile.primaryColor }}>🔐 Modo Editor</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4 pt-2">
                     <div>
-                      <Label className="text-sm font-medium">Contraseña</Label>
+                      <Label className="text-sm font-medium" style={{ color: profile.textColor }}>Contraseña</Label>
                       <div className="relative mt-2 flex items-center">
                         <Input
                           type={showPassword ? 'text' : 'password'}
@@ -366,6 +374,38 @@ function PortfolioApp() {
             <Button onClick={() => setShowPdfDialog(true)} size="sm" variant="outline" className="gap-2">📄 PDF</Button>
           </div>
         </div>
+        
+        {/* Mobile menu dropdown */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="md:hidden border-t border-gray-200 bg-white/95 backdrop-blur-sm overflow-hidden"
+              style={currentTheme.navStyle}
+            >
+              <div className="px-4 py-3 space-y-1">
+                {['Inicio', 'Sobre mí', 'Experiencia', 'Proyectos', 'Habilidades', 'Certificados', 'Contacto'].map((item, i) => {
+                  const sections = ['hero', 'about', 'experience', 'projects', 'skills', 'certificates', 'contact'];
+                  return (
+                    <a
+                      key={item}
+                      href={`#${sections[i]}`}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`block py-2 px-3 rounded-lg text-sm transition-colors ${
+                        activeSection === sections[i] ? 'font-medium bg-gray-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      }`}
+                      style={activeSection === sections[i] ? { color: profile.primaryColor } : {}}
+                    >
+                      {item}
+                    </a>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </nav>
 
       {/* Hero Section */}
@@ -1036,9 +1076,9 @@ function EditorPanel({ profile, updateProfile, onClose }: any) {
 
   return (
     <motion.div initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }}
-      className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-[420px] bg-white rounded-2xl shadow-2xl z-50 border border-gray-200 overflow-hidden">
+      className="fixed bottom-0 left-0 right-0 md:bottom-4 md:left-auto md:right-4 md:w-[420px] md:rounded-2xl bg-white shadow-2xl z-50 border border-gray-200 overflow-hidden md:rounded-t-2xl rounded-t-2xl">
       <div className="flex items-center justify-between px-4 py-3 border-b bg-gradient-to-r from-gray-50 to-white">
-        <span className="font-semibold" style={{ color: profile.primaryColor }}>⚙️ Panel de Editor</span>
+        <span className="font-semibold text-sm md:text-base" style={{ color: profile.primaryColor }}>⚙️ Panel de Editor</span>
         <Button variant="ghost" size="sm" onClick={onClose} className="h-7 w-7 p-0"><X size={16} /></Button>
       </div>
       
@@ -1050,7 +1090,7 @@ function EditorPanel({ profile, updateProfile, onClose }: any) {
           <TabsTrigger value="themes" className="text-sm">🎭 Plantillas</TabsTrigger>
         </TabsList>
 
-        <div className="max-h-[50vh] overflow-y-auto p-4">
+        <div className="max-h-[45vh] md:max-h-[50vh] overflow-y-auto p-4">
           <TabsContent value="profile" className="space-y-3 mt-0">
             <div><Label className="text-xs text-gray-500">Nombre</Label>
               <Input value={currentData.name} onChange={(e) => setData({ ...currentData, name: e.target.value })} className="mt-1" /></div>
