@@ -78,7 +78,7 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
   const [showMobilePanel, setShowMobilePanel] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   // Nuevas opciones de impresión
-  const [density, setDensity] = useState<'compact' | 'normal' | 'spacious'>('normal');
+  const [density, setDensity] = useState<'extra-compact' | 'compact' | 'normal' | 'spacious'>('compact');
   const [paperSize, setPaperSize] = useState<'letter' | 'a4'>('letter');
   const [pageCount, setPageCount] = useState<'auto' | '1' | '2'>('auto');
   const previewRef = useRef<HTMLDivElement>(null);
@@ -197,7 +197,7 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
     `;
 
     // Función para generar el HTML completo con una densidad dada
-    const generateHtmlWithDensity = (testDensity: 'compact' | 'normal' | 'spacious') => {
+    const generateHtmlWithDensity = (testDensity: 'extra-compact' | 'compact' | 'normal' | 'spacious') => {
       const testStyles = getTemplateStyles(selectedTemplate, modifiedProfile, colorOverrides, testDensity);
       const testContent = generateCVContent(modifiedProfile, selectedTemplate, sections, colorOverrides, qrColumnHtml, qrBottomHtml);
 
@@ -213,7 +213,7 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0; padding: 0; }
           @page { size: ${pageDimensions.cssSize}; margin: ${pageDimensions.margin}; }
           .cv-container { width: 100%; max-width: none; }
-          /* page-break-inside: avoid solo en items pequeños, no en secciones enteras */
+          /* page-break-inside: avoid solo en items pequeños */
           .item { page-break-inside: avoid; }
           h1, h2, h3, h4, .section-title { page-break-after: avoid; }
         }
@@ -227,7 +227,6 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
     };
 
     // PASO 1: Medir contenido con densidad actual
-    // Renderizamos en un div oculto para medir la altura real
     const measureContent = (html: string): { totalHeight: number; pageHeight: number } => {
       const iframe = document.createElement('iframe');
       iframe.style.position = 'absolute';
@@ -241,9 +240,8 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
       iframe.contentDocument?.write(html);
       iframe.contentDocument?.close();
 
-      const pageHeight = paperSize === 'a4' ? 1123 : 1056; // altura de 1 página en px
+      const pageHeight = paperSize === 'a4' ? 1123 : 1056;
 
-      // Esperar a que se renderice
       return new Promise((resolve) => {
         setTimeout(() => {
           const container = iframe.contentDocument?.querySelector('.cv-container');
@@ -255,19 +253,21 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
     };
 
     // PASO 2: Probar densidades hasta encontrar una que quepa en 2 páginas
-    // Estrategia: si con la densidad actual excede 2 páginas, probar más compacto
+    // Orden de prueba: del más espacioso al más compacto
     let finalDensity = density;
-    const densitiesToTry: ('compact' | 'normal' | 'spacious')[] = ['spacious', 'normal', 'compact'];
-    const startIdx = densitiesToTry.indexOf(density);
+    const densitiesToTry: ('extra-compact' | 'compact' | 'normal' | 'spacious')[] = [
+      'spacious', 'normal', 'compact', 'extra-compact'
+    ];
 
     // Medir con densidad actual primero
     const testHtml = generateHtmlWithDensity(finalDensity);
     const measurement = await measureContent(testHtml);
-    const maxTwoPagesHeight = measurement.pageHeight * 2.05; // 2 páginas + 5% tolerancia
+    const maxTwoPagesHeight = measurement.pageHeight * 2.0; // exactamente 2 páginas
 
     if (measurement.totalHeight > maxTwoPagesHeight) {
-      // Excede 2 páginas: probar densidad más compacta
-      for (let i = startIdx + 1; i < densitiesToTry.length; i++) {
+      // Excede 2 páginas: probar densidades más compactas
+      const currentIdx = densitiesToTry.indexOf(density);
+      for (let i = currentIdx + 1; i < densitiesToTry.length; i++) {
         const tryDensity = densitiesToTry[i];
         const tryHtml = generateHtmlWithDensity(tryDensity);
         const tryMeasurement = await measureContent(tryHtml);
@@ -275,9 +275,9 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
           finalDensity = tryDensity;
           break;
         }
-        // Si llegamos al último y sigue sin caber, usar el más compacto
+        // Si llegamos al último y sigue sin caber, usar extra-compact
         if (i === densitiesToTry.length - 1) {
-          finalDensity = 'compact';
+          finalDensity = 'extra-compact';
         }
       }
     }
@@ -288,7 +288,6 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
     printWindow.document.close();
     printWindow.focus();
 
-    // Esperar a que se renderice antes de imprimir
     setTimeout(() => { printWindow.print(); }, 800);
   };
 
@@ -326,7 +325,7 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
     <div className="space-y-3">
       <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium bg-blue-900/40 text-blue-300">
         <Maximize2 size={14} />
-        <span>Multi-página automático · Letra {density === 'compact' ? '12pt' : density === 'normal' ? '13pt' : '14pt'} · {paperSize === 'letter' ? 'Carta' : 'A4'}</span>
+        <span>Máx 2 hojas · Letra {density === 'extra-compact' ? '10pt' : density === 'compact' ? '11pt' : density === 'normal' ? '12pt' : '14pt'} · {paperSize === 'letter' ? 'Carta' : 'A4'}</span>
       </div>
       <Button
         onClick={() => { setIsGenerating(true); handlePrint(); setTimeout(() => setIsGenerating(false), 1000); }}
@@ -455,11 +454,12 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
           {/* Densidad de contenido */}
           <div>
             <h4 className={`text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 ${compact ? 'text-[10px]' : ''}`}>Densidad del contenido</h4>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               {[
-                { id: 'compact', name: 'Compacto', desc: '12pt, menos espacio', icon: '📑' },
-                { id: 'normal', name: 'Normal', desc: '13pt, balanceado', icon: '📄' },
-                { id: 'spacious', name: 'Espacioso', desc: '14pt, más aire', icon: '📋' },
+                { id: 'extra-compact', name: 'Extra Compacto', desc: '10pt, máximo ajuste', icon: '📑' },
+                { id: 'compact', name: 'Compacto', desc: '11pt, ajustado', icon: '📄' },
+                { id: 'normal', name: 'Normal', desc: '12pt, balanceado', icon: '📋' },
+                { id: 'spacious', name: 'Espacioso', desc: '14pt, más aire', icon: '📃' },
               ].map((d) => (
                 <button
                   key={d.id}
@@ -476,6 +476,9 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
                 </button>
               ))}
             </div>
+            <p className="text-[10px] text-slate-500 mt-2 leading-relaxed">
+              💡 Si el contenido excede 2 páginas, se usará automáticamente una densidad más compacta.
+            </p>
           </div>
 
           {/* Tamaño de papel */}
@@ -528,7 +531,7 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Densidad:</span>
-                <span className="font-medium capitalize">{density} ({density === 'compact' ? '12pt' : density === 'normal' ? '13pt' : '14pt'})</span>
+                <span className="font-medium capitalize">{density === 'extra-compact' ? 'Extra Compacto' : density} ({density === 'extra-compact' ? '10pt' : density === 'compact' ? '11pt' : density === 'normal' ? '12pt' : '14pt'})</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Papel:</span>
@@ -536,7 +539,7 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Páginas:</span>
-                <span className="font-medium text-blue-300">Automático (1-3 según contenido)</span>
+                <span className="font-medium text-blue-300">Máximo 2 (ajuste automático)</span>
               </div>
             </div>
           </div>
@@ -715,40 +718,53 @@ function getPhotoHtml(profile: any): string {
   return `<div class="photo-circle">${profile.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}</div>`;
 }
 
-function getTemplateStyles(template: TemplateType, profile: any, colorOverrides?: ColorOverrides, density: 'compact' | 'normal' | 'spacious' = 'normal'): string {
+function getTemplateStyles(template: TemplateType, profile: any, colorOverrides?: ColorOverrides, density: 'extra-compact' | 'compact' | 'normal' | 'spacious' = 'normal'): string {
   const pc = colorOverrides?.primary || profile.primaryColor || '#2563eb';
   const sc = colorOverrides?.secondary || profile.secondaryColor || '#60a5fa';
   const ac = colorOverrides?.accent || profile.accentColor || '#f59e0b';
   const tc = colorOverrides?.text || '#2d2d2d';
 
   // Factores de escala según densidad.
-  // Mínimo absoluto: 12pt para body (legible en impresión).
-  // compact = reduce espaciado, NO tamaño de letra
-  // spacious = más aire entre elementos
+  // extra-compact = 10pt body, muy compacto (para CV con mucho contenido)
+  // compact = 11pt body, compacto
+  // normal = 12pt body, balanceado (default cambiado para garantizar 2 páginas)
+  // spacious = 14pt body, más aire
   const densityConfig = {
+    'extra-compact': {
+      bodySize: '10pt',
+      headingSize: '14pt',
+      sectionSize: '11pt',
+      itemTitleSize: '11pt',
+      metaSize: '9pt',
+      smallSize: '8pt',
+      sectionMargin: '5px',
+      itemMargin: '3px',
+      lineSpacing: '1.2',
+      padding: '16px',
+    },
     compact: {
-      bodySize: '12pt',
+      bodySize: '11pt',
       headingSize: '15pt',
+      sectionSize: '12pt',
+      itemTitleSize: '12pt',
+      metaSize: '10pt',
+      smallSize: '9pt',
+      sectionMargin: '6px',
+      itemMargin: '4px',
+      lineSpacing: '1.25',
+      padding: '20px',
+    },
+    normal: {
+      bodySize: '12pt',
+      headingSize: '16pt',
       sectionSize: '13pt',
       itemTitleSize: '13pt',
-      metaSize: '11pt',
-      smallSize: '10pt',
+      metaSize: '10pt',
+      smallSize: '9pt',
       sectionMargin: '8px',
       itemMargin: '6px',
       lineSpacing: '1.3',
       padding: '24px',
-    },
-    normal: {
-      bodySize: '13pt',
-      headingSize: '17pt',
-      sectionSize: '14pt',
-      itemTitleSize: '14pt',
-      metaSize: '11pt',
-      smallSize: '10pt',
-      sectionMargin: '12px',
-      itemMargin: '10px',
-      lineSpacing: '1.4',
-      padding: '32px',
     },
     spacious: {
       bodySize: '14pt',
