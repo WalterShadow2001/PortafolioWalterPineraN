@@ -9,3 +9,12 @@ migrate-schema.js
 check-data.js
 .vercel
 .vercel/
+
+# Archivos temporales de desarrollo
+3001
+dev.log
+dev.pid
+.zscripts/
+scripts/
+download/
+tool-results/

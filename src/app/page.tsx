@@ -297,8 +297,8 @@ function PortfolioApp() {
       <div className="relative z-10">
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm" style={currentTheme.navStyle}>
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <span className="font-bold text-xl" style={{ color: profile.primaryColor }}>
+        <div className="max-w-6xl mx-auto px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between gap-2">
+          <span className="font-bold text-base sm:text-xl shrink-0" style={{ color: profile.primaryColor }}>
             {profile.name.split(' ')[0]}
           </span>
           
@@ -316,26 +316,31 @@ function PortfolioApp() {
             })}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             {/* Mobile menu button */}
             <button
-              className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+              className="md:hidden p-2.5 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Abrir menú"
             >
-              {mobileMenuOpen ? <XIcon size={20} /> : <Menu size={20} />}
+              {mobileMenuOpen ? <XIcon size={22} /> : <Menu size={22} />}
             </button>
             {isAuthenticated ? (
               <>
-                <Button onClick={() => setShowEditor(!showEditor)} size="sm" className="gap-2" style={{ backgroundColor: profile.primaryColor, color: 'white' }}>
-                  {showEditor ? 'Ocultar Editor' : '✏️ Editor'}
+                <Button onClick={() => setShowEditor(!showEditor)} size="sm" className="gap-1.5 hidden sm:inline-flex" style={{ backgroundColor: profile.primaryColor, color: 'white' }}>
+                  {showEditor ? 'Ocultar' : '✏️ Editor'}
                 </Button>
-                <Button onClick={logout} variant="outline" size="sm">Salir</Button>
+                <Button onClick={() => setShowEditor(!showEditor)} size="icon" className="sm:hidden h-10 w-10" style={{ backgroundColor: profile.primaryColor, color: 'white' }} aria-label="Editor">
+                  ✏️
+                </Button>
+                <Button onClick={logout} variant="outline" size="sm" className="hidden sm:inline-flex">Salir</Button>
               </>
             ) : (
               <Dialog open={showLogin} onOpenChange={setShowLogin}>
                 <DialogTrigger asChild>
-                  <Button variant="ghost" size="sm" className="gap-1 text-gray-500 hover:text-gray-700">
-                    🔒 Acceder
+                  <Button variant="ghost" size="sm" className="gap-1 text-gray-500 hover:text-gray-700 min-h-[40px]">
+                    <span className="text-base">🔒</span>
+                    <span className="hidden sm:inline">Acceder</span>
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-md w-[calc(100%-2rem)] mx-auto" style={{ backgroundColor: profile.backgroundColor || '#ffffff', borderColor: profile.primaryColor, color: profile.textColor || '#1f2937' }}>
@@ -352,7 +357,7 @@ function PortfolioApp() {
                           onChange={(e) => setPassword(e.target.value)}
                           onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                           placeholder="Ingresa la contraseña"
-                          className="pr-14"
+                          className="pr-14 h-11 text-base"
                         />
                         <div className="absolute right-2 top-1/2 -translate-y-1/2">
                           <EyeToggle
@@ -363,7 +368,7 @@ function PortfolioApp() {
                         </div>
                       </div>
                     </div>
-                    <Button onClick={handleLogin} disabled={loginLoading} className="w-full" style={{ backgroundColor: profile.primaryColor, color: 'white' }}>
+                    <Button onClick={handleLogin} disabled={loginLoading} className="w-full h-11 text-base" style={{ backgroundColor: profile.primaryColor, color: 'white' }}>
                       {loginLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                       {loginLoading ? 'Verificando...' : 'Entrar al Editor'}
                     </Button>
@@ -371,7 +376,10 @@ function PortfolioApp() {
                 </DialogContent>
               </Dialog>
             )}
-            <Button onClick={() => setShowPdfDialog(true)} size="sm" variant="outline" className="gap-2">📄 PDF</Button>
+            <Button onClick={() => setShowPdfDialog(true)} size="sm" variant="outline" className="gap-1.5 min-h-[40px]" style={{ borderColor: profile.primaryColor, color: profile.primaryColor }}>
+              <span className="text-base">📄</span>
+              <span className="hidden sm:inline">PDF</span>
+            </Button>
           </div>
         </div>
         
@@ -385,7 +393,7 @@ function PortfolioApp() {
               className="md:hidden border-t border-gray-200 bg-white/95 backdrop-blur-sm overflow-hidden"
               style={currentTheme.navStyle}
             >
-              <div className="px-4 py-3 space-y-1">
+              <div className="px-3 py-3 space-y-1">
                 {['Inicio', 'Sobre mí', 'Experiencia', 'Proyectos', 'Habilidades', 'Certificados', 'Contacto'].map((item, i) => {
                   const sections = ['hero', 'about', 'experience', 'projects', 'skills', 'certificates', 'contact'];
                   return (
@@ -393,7 +401,7 @@ function PortfolioApp() {
                       key={item}
                       href={`#${sections[i]}`}
                       onClick={() => setMobileMenuOpen(false)}
-                      className={`block py-2 px-3 rounded-lg text-sm transition-colors ${
+                      className={`block py-3 px-4 rounded-lg text-base transition-colors min-h-[48px] flex items-center ${
                         activeSection === sections[i] ? 'font-medium bg-gray-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                       }`}
                       style={activeSection === sections[i] ? { color: profile.primaryColor } : {}}
@@ -402,6 +410,15 @@ function PortfolioApp() {
                     </a>
                   );
                 })}
+                {isAuthenticated && (
+                  <button
+                    onClick={() => { setShowEditor(!showEditor); setMobileMenuOpen(false); }}
+                    className="block w-full text-left py-3 px-4 rounded-lg text-base bg-blue-50 mt-2"
+                    style={{ color: profile.primaryColor }}
+                  >
+                    ✏️ {showEditor ? 'Ocultar Editor' : 'Abrir Editor'}
+                  </button>
+                )}
               </div>
             </motion.div>
           )}
@@ -409,22 +426,22 @@ function PortfolioApp() {
       </nav>
 
       {/* Hero Section */}
-      <section id="hero" className="min-h-screen flex items-center justify-center pt-16 px-4">
+      <section id="hero" className="min-h-screen flex items-center justify-center pt-20 sm:pt-16 px-4 sm:px-6">
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="text-center max-w-4xl">
           {/* Profile Photo */}
-          <div className="relative inline-block mb-6">
-            <div className="w-40 h-40 md:w-48 md:h-48 rounded-full overflow-hidden border-4 shadow-xl" style={{ borderColor: profile.primaryColor }}>
+          <div className="relative inline-block mb-4 sm:mb-6">
+            <div className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 rounded-full overflow-hidden border-4 shadow-xl" style={{ borderColor: profile.primaryColor }}>
               {profile.photo ? (
                 <img src={profile.photo} alt={profile.name} className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-5xl font-bold text-white"
+                <div className="w-full h-full flex items-center justify-center text-4xl sm:text-5xl font-bold text-white"
                   style={{ background: `linear-gradient(135deg, ${profile.primaryColor}, ${profile.secondaryColor})` }}>
                   {profile.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                 </div>
               )}
             </div>
             {isAuthenticated && (
-              <label className="absolute bottom-2 right-2 p-3 rounded-full cursor-pointer shadow-lg transition-transform hover:scale-110" style={{ backgroundColor: profile.primaryColor }}>
+              <label className="absolute bottom-2 right-2 p-2.5 sm:p-3 rounded-full cursor-pointer shadow-lg transition-transform hover:scale-110" style={{ backgroundColor: profile.primaryColor }}>
                 <Camera size={20} className="text-white" />
                 <input type="file" accept="image/*" onChange={async (e) => {
                   const file = e.target.files?.[0];
@@ -441,40 +458,43 @@ function PortfolioApp() {
             )}
           </div>
 
-          <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-4xl md:text-6xl font-bold mb-4" style={{ color: profile.textColor }}>
+          <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-3xl sm:text-4xl md:text-6xl font-bold mb-3 sm:mb-4 px-2 break-words" style={{ color: profile.textColor }}>
             {profile.name}
           </motion.h1>
           
-          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="text-xl md:text-2xl mb-6" style={{ color: profile.primaryColor }}>
+          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="text-lg sm:text-xl md:text-2xl mb-5 sm:mb-6 px-2" style={{ color: profile.primaryColor }}>
             {profile.title}
           </motion.p>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="flex flex-wrap justify-center gap-3 mb-8">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-6 sm:mb-8 px-2">
             {profile.email && (
-              <a href={`mailto:${profile.email}`} className="flex items-center gap-2 px-4 py-2 bg-white rounded-full text-sm shadow-sm hover:shadow-md transition-shadow border border-gray-100">
-                <Mail size={16} style={{ color: profile.primaryColor }} />{profile.email}
+              <a href={`mailto:${profile.email}`} className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white rounded-full text-xs sm:text-sm shadow-sm hover:shadow-md transition-shadow border border-gray-100 min-h-[40px]">
+                <Mail size={16} className="shrink-0" style={{ color: profile.primaryColor }} />
+                <span className="truncate max-w-[140px] sm:max-w-none">{profile.email}</span>
               </a>
             )}
             {profile.phone && (
-              <a href={`tel:${profile.phone}`} className="flex items-center gap-2 px-4 py-2 bg-white rounded-full text-sm shadow-sm hover:shadow-md transition-shadow border border-gray-100">
-                <Phone size={16} style={{ color: profile.primaryColor }} />{profile.phone}
+              <a href={`tel:${profile.phone}`} className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white rounded-full text-xs sm:text-sm shadow-sm hover:shadow-md transition-shadow border border-gray-100 min-h-[40px]">
+                <Phone size={16} className="shrink-0" style={{ color: profile.primaryColor }} />
+                <span>{profile.phone}</span>
               </a>
             )}
             {profile.location && (
-              <span className="flex items-center gap-2 px-4 py-2 bg-white rounded-full text-sm shadow-sm border border-gray-100">
-                <MapPin size={16} style={{ color: profile.primaryColor }} />{profile.location}
+              <span className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white rounded-full text-xs sm:text-sm shadow-sm border border-gray-100 min-h-[40px]">
+                <MapPin size={16} className="shrink-0" style={{ color: profile.primaryColor }} />
+                <span className="truncate max-w-[120px] sm:max-w-none">{profile.location}</span>
               </span>
             )}
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="flex justify-center gap-4">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="flex justify-center gap-3 sm:gap-4 flex-wrap">
             {profile.socialLinks?.filter((link: any) => link.url && link.url.trim() !== '').map((link: any) => {
               const Icon = socialIconMap[link.icon?.toLowerCase()] || Globe;
               return (
                 <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer"
-                  className="p-3 rounded-full transition-all hover:scale-110 shadow-sm"
+                  className="p-2.5 sm:p-3 rounded-full transition-all hover:scale-110 shadow-sm min-h-[44px] min-w-[44px] flex items-center justify-center"
                   style={{ backgroundColor: profile.primaryColor, color: 'white' }}>
-                  <Icon size={24} />
+                  <Icon size={22} />
                 </a>
               );
             })}
@@ -490,42 +510,42 @@ function PortfolioApp() {
 
       {/* About Section */}
       {profile.bio && (
-        <section id="about" className="py-20 px-4" style={{ ...(currentTheme.altSectionStyle || {}), backgroundColor: `${profile.primaryColor}08` }}>
+        <section id="about" className="py-12 sm:py-20 px-4 sm:px-6" style={{ ...(currentTheme.altSectionStyle || {}), backgroundColor: `${profile.primaryColor}08` }}>
           <div className="max-w-4xl mx-auto">
             <motion.h2 initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-              className="text-3xl font-bold text-center mb-8" style={{ color: profile.primaryColor }}>
+              className="text-2xl sm:text-3xl font-bold text-center mb-6 sm:mb-8" style={{ color: profile.primaryColor }}>
               Sobre Mí
             </motion.h2>
-            <p className="text-lg text-center leading-relaxed" style={{ color: profile.textColor, opacity: 0.8 }}>{profile.bio}</p>
+            <p className="text-base sm:text-lg text-center leading-relaxed px-2" style={{ color: profile.textColor, opacity: 0.8 }}>{profile.bio}</p>
           </div>
         </section>
       )}
 
       {/* Experience Section */}
       {profile.experiences && profile.experiences.length > 0 && (
-        <section id="experience" className="py-20 px-4">
+        <section id="experience" className="py-12 sm:py-20 px-4 sm:px-6">
           <div className="max-w-4xl mx-auto">
             <motion.h2 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-              className="text-3xl font-bold text-center mb-12" style={{ color: profile.primaryColor }}>
+              className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12" style={{ color: profile.primaryColor }}>
               Experiencia & Educación
             </motion.h2>
 
-            <div className="grid md:grid-cols-2 gap-12">
+            <div className="grid md:grid-cols-2 gap-8 md:gap-12">
               {/* Work Experience */}
               <div>
-                <h3 className="text-xl font-semibold mb-6 flex items-center gap-2" style={{ color: profile.primaryColor }}>
-                  <Briefcase size={24} /> Experiencia Laboral
+                <h3 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6 flex items-center gap-2" style={{ color: profile.primaryColor }}>
+                  <Briefcase size={20} className="sm:hidden" /><Briefcase size={24} className="hidden sm:block" /> Experiencia Laboral
                 </h3>
-                <div className="relative pl-8 border-l-2" style={{ borderColor: profile.primaryColor }}>
+                <div className="relative pl-6 sm:pl-8 border-l-2" style={{ borderColor: profile.primaryColor }}>
                   {profile.experiences.filter(e => e.type === 'work').map((exp: any, i: number) => (
                     <motion.div key={exp.id} initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-                      className="relative mb-8 last:mb-0 group">
-                      <div className="absolute w-4 h-4 rounded-full -left-[25px] top-0" style={{ backgroundColor: profile.primaryColor }} />
-                      <div className="bg-white p-5 rounded-xl shadow-sm ml-4 card-hover border border-gray-100" style={currentTheme.cardStyle}>
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h4 className="font-semibold text-lg" style={{ color: profile.textColor }}>{exp.title}</h4>
-                            <p style={{ color: profile.primaryColor }} className="font-medium">{exp.company}</p>
+                      className="relative mb-6 sm:mb-8 last:mb-0 group">
+                      <div className="absolute w-4 h-4 rounded-full -left-[22px] sm:-left-[25px] top-0" style={{ backgroundColor: profile.primaryColor }} />
+                      <div className="bg-white p-4 sm:p-5 rounded-xl shadow-sm ml-3 sm:ml-4 card-hover border border-gray-100" style={currentTheme.cardStyle}>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <h4 className="font-semibold text-base sm:text-lg leading-tight" style={{ color: profile.textColor }}>{exp.title}</h4>
+                            <p style={{ color: profile.primaryColor }} className="font-medium text-sm sm:text-base mt-1">{exp.company}</p>
                           </div>
                           {isAuthenticated && (
                             <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
@@ -538,11 +558,11 @@ function PortfolioApp() {
                             </div>
                           )}
                         </div>
-                        <div className="flex flex-wrap gap-4 text-sm text-gray-500 mt-2">
+                        <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500 mt-2">
                           {exp.location && <span className="flex items-center gap-1"><MapPin size={14} />{exp.location}</span>}
                           <span className="flex items-center gap-1"><Calendar size={14} />{exp.startDate} - {exp.endDate || 'Presente'}</span>
                         </div>
-                        {exp.description && <p className="mt-2 text-gray-600 text-sm">{exp.description}</p>}
+                        {exp.description && <p className="mt-2 text-gray-600 text-xs sm:text-sm leading-relaxed">{exp.description}</p>}
                       </div>
                     </motion.div>
                   ))}
@@ -551,19 +571,19 @@ function PortfolioApp() {
 
               {/* Education */}
               <div>
-                <h3 className="text-xl font-semibold mb-6 flex items-center gap-2" style={{ color: profile.secondaryColor }}>
-                  <GraduationCap size={24} /> Educación
+                <h3 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6 flex items-center gap-2" style={{ color: profile.secondaryColor }}>
+                  <GraduationCap size={20} className="sm:hidden" /><GraduationCap size={24} className="hidden sm:block" /> Educación
                 </h3>
-                <div className="relative pl-8 border-l-2" style={{ borderColor: profile.secondaryColor }}>
+                <div className="relative pl-6 sm:pl-8 border-l-2" style={{ borderColor: profile.secondaryColor }}>
                   {profile.experiences.filter(e => e.type === 'education').map((exp: any, i: number) => (
                     <motion.div key={exp.id} initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-                      className="relative mb-8 last:mb-0 group">
-                      <div className="absolute w-4 h-4 rounded-full -left-[25px] top-0" style={{ backgroundColor: profile.secondaryColor }} />
-                      <div className="bg-white p-5 rounded-xl shadow-sm ml-4 card-hover border border-gray-100" style={currentTheme.cardStyle}>
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h4 className="font-semibold text-lg" style={{ color: profile.textColor }}>{exp.title}</h4>
-                            <p style={{ color: profile.secondaryColor }} className="font-medium">{exp.company}</p>
+                      className="relative mb-6 sm:mb-8 last:mb-0 group">
+                      <div className="absolute w-4 h-4 rounded-full -left-[22px] sm:-left-[25px] top-0" style={{ backgroundColor: profile.secondaryColor }} />
+                      <div className="bg-white p-4 sm:p-5 rounded-xl shadow-sm ml-3 sm:ml-4 card-hover border border-gray-100" style={currentTheme.cardStyle}>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <h4 className="font-semibold text-base sm:text-lg leading-tight" style={{ color: profile.textColor }}>{exp.title}</h4>
+                            <p style={{ color: profile.secondaryColor }} className="font-medium text-sm sm:text-base mt-1">{exp.company}</p>
                           </div>
                           {isAuthenticated && (
                             <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
@@ -576,10 +596,11 @@ function PortfolioApp() {
                             </div>
                           )}
                         </div>
-                        <div className="flex flex-wrap gap-4 text-sm text-gray-500 mt-2">
+                        <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500 mt-2">
                           {exp.location && <span className="flex items-center gap-1"><MapPin size={14} />{exp.location}</span>}
                           <span className="flex items-center gap-1"><Calendar size={14} />{exp.startDate} - {exp.endDate || 'Presente'}</span>
                         </div>
+                        {exp.description && <p className="mt-2 text-gray-600 text-xs sm:text-sm leading-relaxed">{exp.description}</p>}
                       </div>
                     </motion.div>
                   ))}
@@ -588,8 +609,8 @@ function PortfolioApp() {
             </div>
             
             {isAuthenticated && (
-              <div className="text-center mt-8">
-                <Button onClick={() => setEditingExperience({ title: '', company: '', location: '', startDate: '', endDate: '', description: '', type: 'work' })} variant="outline" className="gap-2">
+              <div className="text-center mt-6 sm:mt-8">
+                <Button onClick={() => setEditingExperience({ title: '', company: '', location: '', startDate: '', endDate: '', description: '', type: 'work' })} variant="outline" className="gap-2 min-h-[44px]">
                   <Plus size={16} /> Agregar Experiencia
                 </Button>
               </div>
@@ -600,14 +621,14 @@ function PortfolioApp() {
 
       {/* Projects Section */}
       {profile.projects && profile.projects.length > 0 && (
-        <section id="projects" className="py-20 px-4" style={{ ...(currentTheme.altSectionStyle || {}), backgroundColor: `${profile.primaryColor}08` }}>
+        <section id="projects" className="py-12 sm:py-20 px-4 sm:px-6" style={{ ...(currentTheme.altSectionStyle || {}), backgroundColor: `${profile.primaryColor}08` }}>
           <div className="max-w-6xl mx-auto">
             <motion.h2 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-              className="text-3xl font-bold text-center mb-12" style={{ color: profile.primaryColor }}>
+              className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12" style={{ color: profile.primaryColor }}>
               Proyectos
             </motion.h2>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {profile.projects.map((project: any, i: number) => {
                 const images = project.images ? JSON.parse(project.images) : [];
                 return (
