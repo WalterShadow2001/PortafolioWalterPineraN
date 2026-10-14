@@ -177,7 +177,6 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
     const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://portafolio-walter-pineran.vercel.app';
     const qrSvg = await generateQRSvgString(siteUrl, 80, colorOverrides.primary);
     const siteHost = siteUrl.replace('https://', '').replace('http://', '');
-    // QR for column placement (vertical/centered layout)
     const qrColumnHtml = `
       <div class="cv-qr-section">
         <div class="cv-qr-code">${qrSvg}</div>
@@ -187,7 +186,6 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
         </div>
       </div>
     `;
-    // QR for full-width placement (right-aligned at bottom)
     const qrBottomHtml = `
       <div class="cv-qr-section cv-qr-bottom">
         <div class="cv-qr-code">${qrSvg}</div>
@@ -198,45 +196,99 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
       </div>
     `;
 
-    // Pasar density y pageCount al generador de estilos
-    const styles = getTemplateStyles(selectedTemplate, modifiedProfile, colorOverrides, density);
-    const content = generateCVContent(modifiedProfile, selectedTemplate, sections, colorOverrides, qrColumnHtml, qrBottomHtml);
+    // Función para generar el HTML completo con una densidad dada
+    const generateHtmlWithDensity = (testDensity: 'compact' | 'normal' | 'spacious') => {
+      const testStyles = getTemplateStyles(selectedTemplate, modifiedProfile, colorOverrides, testDensity);
+      const testContent = generateCVContent(modifiedProfile, selectedTemplate, sections, colorOverrides, qrColumnHtml, qrBottomHtml);
 
-    const qrStyles = `.cv-qr-section{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;margin-top:14px;padding:12px 10px;border:1px solid rgba(0,0,0,0.08);border-radius:8px;background:rgba(255,255,255,0.6)}.cv-qr-code{padding:4px;background:#fff;border-radius:5px;line-height:0;box-shadow:0 1px 4px rgba(0,0,0,0.1)}.cv-qr-text{text-align:center}.cv-qr-title{font-size:9pt;font-weight:600;letter-spacing:0.5px;opacity:0.55}.cv-qr-url{font-size:8pt;font-family:monospace;opacity:0.4;margin-top:1px}.cv-qr-bottom{flex-direction:row;justify-content:flex-end;gap:8px;padding:8px 12px;margin-top:10px}`;
+      const pageDimensions = paperSize === 'a4'
+        ? { w: 794, h: 1123, cssSize: 'A4', margin: '1.4cm' }
+        : { w: 816, h: 1056, cssSize: 'letter', margin: '1.5cm' };
 
-    // Configuración de página según opciones del usuario
-    // Carta = 8.5x11 inch = 816x1056px @96dpi
-    // A4 = 210x297mm = 794x1123px @96dpi
-    const pageDimensions = paperSize === 'a4'
-      ? { w: 794, h: 1123, cssSize: 'A4', margin: '1.4cm' }
-      : { w: 816, h: 1056, cssSize: 'letter', margin: '1.5cm' };
+      const testQrStyles = `.cv-qr-section{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;margin-top:14px;padding:12px 10px;border:1px solid rgba(0,0,0,0.08);border-radius:8px;background:rgba(255,255,255,0.6)}.cv-qr-code{padding:4px;background:#fff;border-radius:5px;line-height:0;box-shadow:0 1px 4px rgba(0,0,0,0.1)}.cv-qr-text{text-align:center}.cv-qr-title{font-size:9pt;font-weight:600;letter-spacing:0.5px;opacity:0.55}.cv-qr-url{font-size:8pt;font-family:monospace;opacity:0.4;margin-top:1px}.cv-qr-bottom{flex-direction:row;justify-content:flex-end;gap:8px;padding:8px 12px;margin-top:10px}`;
 
-    // NO más autoFitScript que escala el contenido.
-    // El contenido fluye naturalmente a múltiples páginas con tipografía legible.
-    // page-break-inside: avoid en items evita cortes feos.
-    const printStyles = `
-      .cv-container { width: 100%; max-width: ${pageDimensions.w}px; margin: 0 auto; }
-      @media print {
-        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0; padding: 0; font-size: 12pt; }
-        @page { size: ${pageDimensions.cssSize}; margin: ${pageDimensions.margin}; }
-        .cv-container { width: 100%; max-width: none; }
-        /* Evitar cortes feos dentro de items */
-        .item, .section, .cv-qr-section { page-break-inside: avoid; }
-        h1, h2, h3, h4 { page-break-after: avoid; }
-        /* Mantener encabezados de sección con su contenido */
-        .section-title { page-break-after: avoid; }
+      const printStyles = `
+        .cv-container { width: 100%; max-width: ${pageDimensions.w}px; margin: 0 auto; }
+        @media print {
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0; padding: 0; }
+          @page { size: ${pageDimensions.cssSize}; margin: ${pageDimensions.margin}; }
+          .cv-container { width: 100%; max-width: none; }
+          /* page-break-inside: avoid solo en items pequeños, no en secciones enteras */
+          .item { page-break-inside: avoid; }
+          h1, h2, h3, h4, .section-title { page-break-after: avoid; }
+        }
+        @media screen {
+          body { background: #f3f4f6; padding: 20px; }
+          .cv-container { box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        }
+      `;
+
+      return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>CV - ${profile?.name}</title><style>${testStyles}${testQrStyles}${printStyles}body{margin:0;padding:0}</style></head><body><div class="cv-container">${testContent}</div></body></html>`;
+    };
+
+    // PASO 1: Medir contenido con densidad actual
+    // Renderizamos en un div oculto para medir la altura real
+    const measureContent = (html: string): { totalHeight: number; pageHeight: number } => {
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'absolute';
+      iframe.style.left = '-9999px';
+      iframe.style.top = '0';
+      iframe.style.width = paperSize === 'a4' ? '794px' : '816px';
+      iframe.style.height = '0';
+      iframe.style.border = 'none';
+      document.body.appendChild(iframe);
+      iframe.contentDocument?.open();
+      iframe.contentDocument?.write(html);
+      iframe.contentDocument?.close();
+
+      const pageHeight = paperSize === 'a4' ? 1123 : 1056; // altura de 1 página en px
+
+      // Esperar a que se renderice
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          const container = iframe.contentDocument?.querySelector('.cv-container');
+          const totalHeight = container ? container.scrollHeight : 0;
+          document.body.removeChild(iframe);
+          resolve({ totalHeight, pageHeight });
+        }, 500);
+      }) as any;
+    };
+
+    // PASO 2: Probar densidades hasta encontrar una que quepa en 2 páginas
+    // Estrategia: si con la densidad actual excede 2 páginas, probar más compacto
+    let finalDensity = density;
+    const densitiesToTry: ('compact' | 'normal' | 'spacious')[] = ['spacious', 'normal', 'compact'];
+    const startIdx = densitiesToTry.indexOf(density);
+
+    // Medir con densidad actual primero
+    const testHtml = generateHtmlWithDensity(finalDensity);
+    const measurement = await measureContent(testHtml);
+    const maxTwoPagesHeight = measurement.pageHeight * 2.05; // 2 páginas + 5% tolerancia
+
+    if (measurement.totalHeight > maxTwoPagesHeight) {
+      // Excede 2 páginas: probar densidad más compacta
+      for (let i = startIdx + 1; i < densitiesToTry.length; i++) {
+        const tryDensity = densitiesToTry[i];
+        const tryHtml = generateHtmlWithDensity(tryDensity);
+        const tryMeasurement = await measureContent(tryHtml);
+        if (tryMeasurement.totalHeight <= maxTwoPagesHeight) {
+          finalDensity = tryDensity;
+          break;
+        }
+        // Si llegamos al último y sigue sin caber, usar el más compacto
+        if (i === densitiesToTry.length - 1) {
+          finalDensity = 'compact';
+        }
       }
-      @media screen {
-        body { background: #f3f4f6; padding: 20px; }
-        .cv-container { box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-      }
-    `;
+    }
 
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>CV - ${profile?.name}</title><style>${styles}${qrStyles}${printStyles}body{margin:0;padding:0}</style></head><body><div class="cv-container">${content}</div></body></html>`;
-    printWindow.document.write(html);
+    // Generar HTML final con la densidad óptima
+    const finalHtml = generateHtmlWithDensity(finalDensity);
+    printWindow.document.write(finalHtml);
     printWindow.document.close();
     printWindow.focus();
-    // Esperar a que se renderice el contenido antes de imprimir
+
+    // Esperar a que se renderice antes de imprimir
     setTimeout(() => { printWindow.print(); }, 800);
   };
 
