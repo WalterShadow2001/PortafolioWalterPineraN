@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import {
   FileDown, Palette, Eye, ZoomIn, ZoomOut, RotateCcw,
-  Check, Sparkles, Layout, Type, Maximize2
+  Check, Sparkles, Layout, Type, Maximize2, Settings
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { createRoot } from 'react-dom/client';
@@ -71,12 +71,16 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
     accent: profile?.accentColor || '#f59e0b',
     text: '#2d2d2d',
   });
-  const [activeTab, setActiveTab] = useState<'templates' | 'sections' | 'colors'>('templates');
+  const [activeTab, setActiveTab] = useState<'templates' | 'sections' | 'colors' | 'options'>('templates');
   const [isGenerating, setIsGenerating] = useState(false);
   const [previewScale, setPreviewScale] = useState(0.52);
   const [fitStatus, setFitStatus] = useState<'checking' | 'fits' | 'overflow' | 'adjusted'>('checking');
   const [showMobilePanel, setShowMobilePanel] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  // Nuevas opciones de impresión
+  const [density, setDensity] = useState<'compact' | 'normal' | 'spacious'>('normal');
+  const [paperSize, setPaperSize] = useState<'letter' | 'a4'>('letter');
+  const [pageCount, setPageCount] = useState<'auto' | '1' | '2'>('auto');
   const previewRef = useRef<HTMLDivElement>(null);
 
   // Detect mobile
@@ -108,34 +112,32 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
 
   // Update color overrides when profile changes
   useEffect(() => {
-    if (profile) {
+    if (profile && profile.primaryColor) {
       setColorOverrides({
-        primary: profile.primaryColor || '#2563eb',
+        primary: profile.primaryColor,
         secondary: profile.secondaryColor || '#60a5fa',
         accent: profile.accentColor || '#f59e0b',
         text: '#2d2d2d',
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.primaryColor, profile?.secondaryColor, profile?.accentColor]);
 
-  // Check fit status whenever template/sections/colors change
+  // Check content height whenever template/sections/colors/density change (solo informativo)
   useEffect(() => {
-    setFitStatus('checking');
     const timer = setTimeout(() => {
       if (renderRef.current) {
         const h = renderRef.current.scrollHeight;
-        const maxH = 1056; // 11 inches at 96dpi
+        const maxH = 1056; // 11 inches at 96dpi (1 página Letter)
         if (h <= maxH) {
           setFitStatus('fits');
-        } else if (h <= maxH * 1.15) {
-          setFitStatus('adjusted');
         } else {
           setFitStatus('overflow');
         }
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [selectedTemplate, sections, colorOverrides]);
+  }, [selectedTemplate, sections, colorOverrides, density]);
 
   // Create a modified profile with color overrides
   const modifiedProfile = {
@@ -196,62 +198,46 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
       </div>
     `;
 
-    const styles = getTemplateStyles(selectedTemplate, modifiedProfile);
+    // Pasar density y pageCount al generador de estilos
+    const styles = getTemplateStyles(selectedTemplate, modifiedProfile, colorOverrides, density);
     const content = generateCVContent(modifiedProfile, selectedTemplate, sections, colorOverrides, qrColumnHtml, qrBottomHtml);
 
-    const qrStyles = `.cv-qr-section{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;margin-top:14px;padding:12px 10px;border:1px solid rgba(0,0,0,0.08);border-radius:8px;background:rgba(255,255,255,0.6)}.cv-qr-code{padding:4px;background:#fff;border-radius:5px;line-height:0;box-shadow:0 1px 4px rgba(0,0,0,0.1)}.cv-qr-text{text-align:center}.cv-qr-title{font-size:8pt;font-weight:600;letter-spacing:0.5px;opacity:0.55}.cv-qr-url{font-size:7pt;font-family:monospace;opacity:0.4;margin-top:1px}.cv-qr-bottom{flex-direction:row;justify-content:flex-end;gap:8px;padding:8px 12px;margin-top:10px}`;
+    const qrStyles = `.cv-qr-section{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;margin-top:14px;padding:12px 10px;border:1px solid rgba(0,0,0,0.08);border-radius:8px;background:rgba(255,255,255,0.6)}.cv-qr-code{padding:4px;background:#fff;border-radius:5px;line-height:0;box-shadow:0 1px 4px rgba(0,0,0,0.1)}.cv-qr-text{text-align:center}.cv-qr-title{font-size:9pt;font-weight:600;letter-spacing:0.5px;opacity:0.55}.cv-qr-url{font-size:8pt;font-family:monospace;opacity:0.4;margin-top:1px}.cv-qr-bottom{flex-direction:row;justify-content:flex-end;gap:8px;padding:8px 12px;margin-top:10px}`;
 
-    // Auto-fit script that shrinks content to fit exactly one letter page
-    // Strategy: wrap cv-container in a page-sized div with overflow:hidden,
-    // then scale the content down with CSS transform if it overflows
-    const autoFitScript = `
-      <script>
-        (function(){
-          var maxW = 816, maxH = 1056;
-          function fit(){
-            var cv = document.querySelector('.cv-container');
-            var page = document.querySelector('.cv-page');
-            if(!cv || !page) return;
-            var h = cv.scrollHeight;
-            if(h > maxH){
-              var scale = maxH / h;
-              cv.style.transform = 'scale(' + scale + ')';
-              cv.style.transformOrigin = 'top left';
-              cv.style.width = maxW + 'px';
-              page.style.height = maxH + 'px';
-              page.style.width = maxW + 'px';
-              page.style.overflow = 'hidden';
-            }
-          }
-          function runFit(){
-            fit();
-            setTimeout(fit, 100);
-            setTimeout(fit, 300);
-            setTimeout(fit, 600);
-            setTimeout(fit, 1000);
-          }
-          window.addEventListener('DOMContentLoaded', function(){ setTimeout(runFit, 100); });
-          window.addEventListener('load', function(){ runFit(); });
-          window.addEventListener('beforeprint', function(){ fit(); });
-        })();
-      </script>
-    `;
+    // Configuración de página según opciones del usuario
+    // Carta = 8.5x11 inch = 816x1056px @96dpi
+    // A4 = 210x297mm = 794x1123px @96dpi
+    const pageDimensions = paperSize === 'a4'
+      ? { w: 794, h: 1123, cssSize: 'A4', margin: '1.4cm' }
+      : { w: 816, h: 1056, cssSize: 'letter', margin: '1.5cm' };
 
+    // NO más autoFitScript que escala el contenido.
+    // El contenido fluye naturalmente a múltiples páginas con tipografía legible.
+    // page-break-inside: avoid en items evita cortes feos.
     const printStyles = `
-      .cv-page { width: 816px; min-height: 1056px; overflow: hidden; }
+      .cv-container { width: 100%; max-width: ${pageDimensions.w}px; margin: 0 auto; }
       @media print {
-        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0; padding: 0; }
-        @page { size: letter; margin: 0; }
-        .cv-page { overflow: hidden; }
+        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0; padding: 0; font-size: 12pt; }
+        @page { size: ${pageDimensions.cssSize}; margin: ${pageDimensions.margin}; }
+        .cv-container { width: 100%; max-width: none; }
+        /* Evitar cortes feos dentro de items */
+        .item, .section, .cv-qr-section { page-break-inside: avoid; }
+        h1, h2, h3, h4 { page-break-after: avoid; }
+        /* Mantener encabezados de sección con su contenido */
+        .section-title { page-break-after: avoid; }
+      }
+      @media screen {
+        body { background: #f3f4f6; padding: 20px; }
+        .cv-container { box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
       }
     `;
 
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>CV - ${profile?.name}</title><style>${styles}${qrStyles}${printStyles}body{margin:0;padding:0}</style></head><body><div class="cv-page">${content}</div>${autoFitScript}</body></html>`;
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>CV - ${profile?.name}</title><style>${styles}${qrStyles}${printStyles}body{margin:0;padding:0}</style></head><body><div class="cv-container">${content}</div></body></html>`;
     printWindow.document.write(html);
     printWindow.document.close();
     printWindow.focus();
-    // Give enough time for auto-fit to run before opening print dialog
-    setTimeout(() => { printWindow.print(); }, 1500);
+    // Esperar a que se renderice el contenido antes de imprimir
+    setTimeout(() => { printWindow.print(); }, 800);
   };
 
   const resetColors = () => {
@@ -281,20 +267,14 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
     { id: 'templates' as const, icon: Layout, label: 'Plantillas' },
     { id: 'sections' as const, icon: Type, label: 'Secciones' },
     { id: 'colors' as const, icon: Palette, label: 'Colores' },
+    { id: 'options' as const, icon: Settings, label: 'Opciones' },
   ];
 
   const actionArea = (
     <div className="space-y-3">
-      <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium ${
-        fitStatus === 'fits' ? 'bg-green-900/40 text-green-400' :
-        fitStatus === 'adjusted' ? 'bg-yellow-900/40 text-yellow-400' :
-        fitStatus === 'overflow' ? 'bg-red-900/40 text-red-400' :
-        'bg-slate-800 text-slate-500'
-      }`}>
-        {fitStatus === 'fits' && <><Check size={14} /> Ajustado a una página</>}
-        {fitStatus === 'adjusted' && <><Sparkles size={14} /> Se ajustará automáticamente</>}
-        {fitStatus === 'overflow' && <><Maximize2 size={14} /> Se ajustará al imprimir</>}
-        {fitStatus === 'checking' && <span className="animate-pulse">Verificando...</span>}
+      <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium bg-blue-900/40 text-blue-300">
+        <Maximize2 size={14} />
+        <span>Multi-página automático · Letra {density === 'compact' ? '12pt' : density === 'normal' ? '13pt' : '14pt'} · {paperSize === 'letter' ? 'Carta' : 'A4'}</span>
       </div>
       <Button
         onClick={() => { setIsGenerating(true); handlePrint(); setTimeout(() => setIsGenerating(false), 1000); }}
@@ -313,7 +293,7 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
         ) : (
           <>
             <FileDown size={16} />
-            Imprimir PDF
+            Imprimir / Guardar PDF
           </>
         )}
       </Button>
@@ -418,6 +398,98 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
           </div>
         </div>
       )}
+      {activeTab === 'options' && (
+        <div className="space-y-4 md:space-y-5">
+          {/* Densidad de contenido */}
+          <div>
+            <h4 className={`text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 ${compact ? 'text-[10px]' : ''}`}>Densidad del contenido</h4>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { id: 'compact', name: 'Compacto', desc: '12pt, menos espacio', icon: '📑' },
+                { id: 'normal', name: 'Normal', desc: '13pt, balanceado', icon: '📄' },
+                { id: 'spacious', name: 'Espacioso', desc: '14pt, más aire', icon: '📋' },
+              ].map((d) => (
+                <button
+                  key={d.id}
+                  onClick={() => setDensity(d.id as any)}
+                  className={`p-2.5 rounded-lg border text-left transition-all ${
+                    density === d.id
+                      ? 'border-blue-400 bg-blue-500/15 ring-1 md:ring-2 ring-blue-400/30'
+                      : 'border-slate-600/50 bg-slate-800 hover:border-blue-400/50'
+                  }`}
+                >
+                  <span className="text-base block mb-1">{d.icon}</span>
+                  <p className={`font-medium ${compact ? 'text-[10px]' : 'text-xs'} ${density === d.id ? 'text-blue-300' : 'text-slate-300'}`}>{d.name}</p>
+                  <p className={`text-slate-500 ${compact ? 'text-[9px]' : 'text-[10px]'} mt-0.5`}>{d.desc}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Tamaño de papel */}
+          <div>
+            <h4 className={`text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 ${compact ? 'text-[10px]' : ''}`}>Tamaño de papel</h4>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { id: 'letter', name: 'Carta', desc: '216×279mm (8.5×11")', icon: '📐' },
+                { id: 'a4', name: 'A4', desc: '210×297mm', icon: '📏' },
+              ].map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => setPaperSize(p.id as any)}
+                  className={`p-2.5 rounded-lg border text-left transition-all ${
+                    paperSize === p.id
+                      ? 'border-blue-400 bg-blue-500/15 ring-1 md:ring-2 ring-blue-400/30'
+                      : 'border-slate-600/50 bg-slate-800 hover:border-blue-400/50'
+                  }`}
+                >
+                  <span className="text-base block mb-1">{p.icon}</span>
+                  <p className={`font-medium ${compact ? 'text-[10px]' : 'text-xs'} ${paperSize === p.id ? 'text-blue-300' : 'text-slate-300'}`}>{p.name}</p>
+                  <p className={`text-slate-500 ${compact ? 'text-[9px]' : 'text-[10px]'} mt-0.5`}>{p.desc}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Información de páginas */}
+          <div className="p-3 rounded-lg bg-slate-800 border border-slate-700/50">
+            <div className="flex items-start gap-2">
+              <div className="text-blue-400 mt-0.5">
+                <Maximize2 size={14} />
+              </div>
+              <div className="flex-1">
+                <p className="text-xs font-medium text-slate-300 mb-1">Impresión multi-página</p>
+                <p className="text-[10px] text-slate-500 leading-relaxed">
+                  El PDF se generará con tipografía legible (mínimo 12pt). Si el contenido no cabe en una hoja, se extenderá automáticamente a 2 o más páginas sin comprimir el texto.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Resumen de configuración */}
+          <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
+            <p className="text-[10px] text-blue-300 font-medium mb-2">CONFIGURACIÓN ACTUAL</p>
+            <div className="space-y-1 text-[11px] text-slate-300">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Plantilla:</span>
+                <span className="font-medium">{templates.find(t => t.id === selectedTemplate)?.name || selectedTemplate}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Densidad:</span>
+                <span className="font-medium capitalize">{density} ({density === 'compact' ? '12pt' : density === 'normal' ? '13pt' : '14pt'})</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Papel:</span>
+                <span className="font-medium">{paperSize === 'letter' ? 'Carta (216×279mm)' : 'A4 (210×297mm)'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Páginas:</span>
+                <span className="font-medium text-blue-300">Automático (1-3 según contenido)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 
@@ -425,9 +497,9 @@ export function PDFCanvasEditor({ open, onOpenChange, profile }: PDFCanvasEditor
     <div
       ref={renderRef}
       className="cv-render-container"
-      style={{ width: 816, height: 'auto', overflow: 'hidden' }}
+      style={{ width: 816, height: 'auto', overflow: 'visible' }}
       dangerouslySetInnerHTML={{
-        __html: `<style>${getTemplateStyles(selectedTemplate, modifiedProfile, colorOverrides)}.cv-qr-section{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;margin-top:14px;padding:12px 10px;border:1px solid rgba(0,0,0,0.08);border-radius:8px;background:rgba(255,255,255,0.6)}.cv-qr-code{padding:4px;background:#fff;border-radius:5px;line-height:0;box-shadow:0 1px 4px rgba(0,0,0,0.1)}.cv-qr-text{text-align:center}.cv-qr-title{font-size:8pt;font-weight:600;letter-spacing:0.5px;opacity:0.55}.cv-qr-url{font-size:7pt;font-family:monospace;opacity:0.4;margin-top:1px}.cv-qr-bottom{flex-direction:row;justify-content:flex-end;gap:8px;padding:8px 12px;margin-top:10px}</style>${generateCVContent(modifiedProfile, selectedTemplate, sections, colorOverrides, `<div class="cv-qr-section"><div class="cv-qr-code" style="width:80px;height:80px;background:repeating-conic-gradient(${colorOverrides?.primary || '#2563eb'} 0% 25%,#fff 0% 50%) 50%/10px 10px;border-radius:4px"></div><div class="cv-qr-text"><div class="cv-qr-title">Escanea para ver portafolio</div><div class="cv-qr-url">portafolio-walter-pineran.vercel.app</div></div></div>`, `<div class="cv-qr-section cv-qr-bottom"><div class="cv-qr-code" style="width:80px;height:80px;background:repeating-conic-gradient(${colorOverrides?.primary || '#2563eb'} 0% 25%,#fff 0% 50%) 50%/10px 10px;border-radius:4px"></div><div class="cv-qr-text"><div class="cv-qr-title">Escanea para ver portafolio</div><div class="cv-qr-url">portafolio-walter-pineran.vercel.app</div></div></div>`)}`
+        __html: `<style>${getTemplateStyles(selectedTemplate, modifiedProfile, colorOverrides, density)}.cv-qr-section{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;margin-top:14px;padding:12px 10px;border:1px solid rgba(0,0,0,0.08);border-radius:8px;background:rgba(255,255,255,0.6)}.cv-qr-code{padding:4px;background:#fff;border-radius:5px;line-height:0;box-shadow:0 1px 4px rgba(0,0,0,0.1)}.cv-qr-text{text-align:center}.cv-qr-title{font-size:9pt;font-weight:600;letter-spacing:0.5px;opacity:0.55}.cv-qr-url{font-size:8pt;font-family:monospace;opacity:0.4;margin-top:1px}.cv-qr-bottom{flex-direction:row;justify-content:flex-end;gap:8px;padding:8px 12px;margin-top:10px}</style>${generateCVContent(modifiedProfile, selectedTemplate, sections, colorOverrides, `<div class="cv-qr-section"><div class="cv-qr-code" style="width:80px;height:80px;background:repeating-conic-gradient(${colorOverrides?.primary || '#2563eb'} 0% 25%,#fff 0% 50%) 50%/10px 10px;border-radius:4px"></div><div class="cv-qr-text"><div class="cv-qr-title">Escanea para ver portafolio</div><div class="cv-qr-url">portafolio-walter-pineran.vercel.app</div></div></div>`, `<div class="cv-qr-section cv-qr-bottom"><div class="cv-qr-code" style="width:80px;height:80px;background:repeating-conic-gradient(${colorOverrides?.primary || '#2563eb'} 0% 25%,#fff 0% 50%) 50%/10px 10px;border-radius:4px"></div><div class="cv-qr-text"><div class="cv-qr-title">Escanea para ver portafolio</div><div class="cv-qr-url">portafolio-walter-pineran.vercel.app</div></div></div>`)}`
       }}
     />
   );
@@ -591,307 +663,261 @@ function getPhotoHtml(profile: any): string {
   return `<div class="photo-circle">${profile.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}</div>`;
 }
 
-function getTemplateStyles(template: TemplateType, profile: any, colorOverrides?: ColorOverrides): string {
+function getTemplateStyles(template: TemplateType, profile: any, colorOverrides?: ColorOverrides, density: 'compact' | 'normal' | 'spacious' = 'normal'): string {
   const pc = colorOverrides?.primary || profile.primaryColor || '#2563eb';
   const sc = colorOverrides?.secondary || profile.secondaryColor || '#60a5fa';
   const ac = colorOverrides?.accent || profile.accentColor || '#f59e0b';
   const tc = colorOverrides?.text || '#2d2d2d';
 
+  // Factores de escala según densidad.
+  // Mínimo absoluto: 12pt para body (legible en impresión).
+  // compact = reduce espaciado, NO tamaño de letra
+  // spacious = más aire entre elementos
+  const densityConfig = {
+    compact: {
+      bodySize: '12pt',
+      headingSize: '15pt',
+      sectionSize: '13pt',
+      itemTitleSize: '13pt',
+      metaSize: '11pt',
+      smallSize: '10pt',
+      sectionMargin: '8px',
+      itemMargin: '6px',
+      lineSpacing: '1.3',
+      padding: '24px',
+    },
+    normal: {
+      bodySize: '13pt',
+      headingSize: '17pt',
+      sectionSize: '14pt',
+      itemTitleSize: '14pt',
+      metaSize: '11pt',
+      smallSize: '10pt',
+      sectionMargin: '12px',
+      itemMargin: '10px',
+      lineSpacing: '1.4',
+      padding: '32px',
+    },
+    spacious: {
+      bodySize: '14pt',
+      headingSize: '20pt',
+      sectionSize: '16pt',
+      itemTitleSize: '15pt',
+      metaSize: '12pt',
+      smallSize: '11pt',
+      sectionMargin: '18px',
+      itemMargin: '14px',
+      lineSpacing: '1.6',
+      padding: '40px',
+    },
+  }[density];
+
   const baseStyles = `
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 8.5pt; line-height: 1.3; color: ${tc}; background: #fff; }
-    .cv-container { color: ${tc}; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: ${densityConfig.bodySize}; line-height: ${densityConfig.lineSpacing}; color: ${tc}; background: #fff; }
+    .cv-container { color: ${tc}; padding: ${densityConfig.padding}; }
+    .section { margin-bottom: ${densityConfig.sectionMargin}; }
+    .section-title { font-size: ${densityConfig.sectionSize}; font-weight: 700; margin-bottom: 8px; }
+    .item { margin-bottom: ${densityConfig.itemMargin}; }
+    .item-title { font-size: ${densityConfig.itemTitleSize}; font-weight: 700; color: ${tc}; }
+    .item-subtitle { font-size: ${densityConfig.metaSize}; color: ${tc}; opacity: 0.7; }
+    .item-date { font-size: ${densityConfig.metaSize}; color: ${tc}; opacity: 0.6; }
+    .item-desc { font-size: ${densityConfig.bodySize}; color: ${tc}; opacity: 0.8; line-height: ${densityConfig.lineSpacing}; margin-top: 4px; }
+    .contact-info { font-size: ${densityConfig.metaSize}; }
+    .cert-item { font-size: ${densityConfig.bodySize}; margin-bottom: 6px; color: ${tc}; }
   `;
 
   switch (template) {
     case 'classic':
-      return baseStyles + getPhotoStyles(profile, 80) + `
-        .cv-container { width: 816px; padding: 28px 32px; }
-        .header { text-align: center; border-bottom: 2px solid ${pc}; padding-bottom: 10px; margin-bottom: 10px; }
-        .name { font-size: 18pt; font-weight: 700; color: ${pc}; margin-bottom: 2px; letter-spacing: 0.5px; }
-        .title { font-size: 10pt; color: ${tc}; opacity: 0.7; margin-bottom: 6px; }
-        .contact-info { display: flex; justify-content: center; gap: 12px; font-size: 8pt; color: ${tc}; opacity: 0.6; flex-wrap: wrap; }
-        .section { margin-bottom: 8px; }
-        .section-title { font-size: 9pt; font-weight: 700; color: ${pc}; border-bottom: 1px solid ${pc}; padding-bottom: 2px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-        .item { margin-bottom: 5px; }
-        .item-header { display: flex; justify-content: space-between; align-items: baseline; }
-        .item-title { font-weight: 700; font-size: 8.5pt; color: ${tc}; }
-        .item-subtitle { color: ${tc}; opacity: 0.6; font-size: 7.5pt; }
-        .item-date { color: ${tc}; opacity: 0.5; font-size: 7pt; }
-        .item-desc { color: ${tc}; opacity: 0.7; font-size: 7.5pt; margin-top: 1px; }
-        .skills-grid { display: flex; flex-wrap: wrap; gap: 4px 12px; }
-        .skill-item { display: flex; align-items: center; gap: 4px; }
-        .skill-bar { width: 45px; height: 3px; background: ${sc}30; border-radius: 1.5px; }
-        .skill-fill { height: 100%; background: ${pc}; border-radius: 1.5px; }
-        .cert-item { font-size: 7.5pt; margin-bottom: 2px; color: ${tc}; }
+      return baseStyles + getPhotoStyles(profile, 100) + `
+        .header { text-align: center; border-bottom: 2px solid ${pc}; padding-bottom: 12px; margin-bottom: 14px; }
+        .name { font-size: ${densityConfig.headingSize}; font-weight: 700; color: ${pc}; margin-bottom: 4px; letter-spacing: 0.5px; }
+        .title { font-size: ${densityConfig.sectionSize}; color: ${tc}; opacity: 0.7; margin-bottom: 8px; }
+        .contact-info { display: flex; justify-content: center; gap: 16px; color: ${tc}; opacity: 0.7; flex-wrap: wrap; }
+        .section-title { color: ${pc}; border-bottom: 1px solid ${pc}; padding-bottom: 4px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .item-header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+        .skills-grid { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+        .skill-item { display: flex; align-items: center; gap: 6px; font-size: ${densityConfig.bodySize}; }
+        .skill-bar { width: 60px; height: 5px; background: ${sc}30; border-radius: 2px; }
+        .skill-fill { height: 100%; background: ${pc}; border-radius: 2px; }
       `;
 
     case 'modern':
-      return baseStyles + getPhotoStyles(profile, 80) + `
-        .cv-container { display: flex; width: 816px; }
-        .sidebar { width: 30%; background: ${pc}; color: #fff; padding: 16px 12px; }
-        .main { width: 70%; padding: 14px 16px; }
-        .name { font-size: 13pt; font-weight: 700; text-align: center; margin-bottom: 2px; letter-spacing: 0.5px; }
-        .title { font-size: 8.5pt; text-align: center; opacity: 0.9; margin-bottom: 12px; }
-        .sidebar-section { margin-bottom: 10px; }
-        .sidebar-title { font-size: 7.5pt; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 3px; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
-        .contact-item { margin-bottom: 4px; font-size: 8pt; line-height: 1.3; }
-        .section { margin-bottom: 8px; }
-        .section-title { font-size: 8.5pt; font-weight: 700; color: ${pc}; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; padding-bottom: 2px; border-bottom: 1.5px solid ${pc}; }
-        .item { margin-bottom: 5px; }
-        .item-title { font-weight: 700; font-size: 8.5pt; color: ${tc}; }
-        .item-subtitle { color: ${tc}; opacity: 0.6; font-size: 7.5pt; }
-        .item-date { color: ${tc}; opacity: 0.5; font-size: 7pt; }
-        .item-desc { color: ${tc}; opacity: 0.7; font-size: 7.5pt; margin-top: 1px; }
-        .skill-item { margin-bottom: 4px; }
-        .skill-name { display: flex; justify-content: space-between; font-size: 7.5pt; margin-bottom: 1px; }
-        .skill-bar { height: 3px; background: rgba(255,255,255,0.3); border-radius: 1.5px; }
-        .skill-fill { height: 100%; background: #fff; border-radius: 1.5px; }
+      return baseStyles + getPhotoStyles(profile, 100) + `
+        .cv-container { display: flex; padding: 0; }
+        .sidebar { width: 32%; background: ${pc}; color: #fff; padding: ${densityConfig.padding}; }
+        .main { width: 68%; padding: ${densityConfig.padding}; }
+        .name { font-size: ${densityConfig.headingSize}; font-weight: 700; text-align: center; margin-bottom: 4px; letter-spacing: 0.5px; }
+        .title { font-size: ${densityConfig.sectionSize}; text-align: center; opacity: 0.9; margin-bottom: 16px; }
+        .sidebar-section { margin-bottom: 16px; }
+        .sidebar-title { font-size: ${densityConfig.sectionSize}; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 4px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+        .contact-item { margin-bottom: 6px; font-size: ${densityConfig.bodySize}; line-height: 1.4; }
+        .section-title { font-size: ${densityConfig.sectionSize}; font-weight: 700; color: ${pc}; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; padding-bottom: 4px; border-bottom: 2px solid ${pc}; }
+        .skill-item { margin-bottom: 8px; }
+        .skill-name { display: flex; justify-content: space-between; font-size: ${densityConfig.bodySize}; margin-bottom: 3px; }
+        .skill-bar { height: 5px; background: rgba(255,255,255,0.3); border-radius: 2px; }
+        .skill-fill { height: 100%; background: #fff; border-radius: 2px; }
       `;
 
     case 'creative':
-      return baseStyles + getPhotoStyles(profile, 72, true) + `
-        .cv-container { width: 816px; padding: 24px; }
-        .header { background: linear-gradient(135deg, ${pc}, ${sc}); color: #fff; padding: 14px 18px; border-radius: 6px; margin-bottom: 10px; display: flex; gap: 12px; align-items: center; }
+      return baseStyles + getPhotoStyles(profile, 90, true) + `
+        .header { background: linear-gradient(135deg, ${pc}, ${sc}); color: #fff; padding: 18px 22px; border-radius: 8px; margin-bottom: 14px; display: flex; gap: 16px; align-items: center; }
         .header-info { flex: 1; }
-        .name { font-size: 15pt; font-weight: 700; }
-        .title { font-size: 9pt; opacity: 0.9; margin-bottom: 3px; }
-        .contact-line { font-size: 7.5pt; opacity: 0.8; }
-        .section { margin-bottom: 8px; }
-        .section-title { font-size: 8.5pt; font-weight: 700; color: ${pc}; display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
-        .section-title::after { content: ''; flex: 1; height: 1.5px; background: linear-gradient(to right, ${pc}, transparent); }
-        .timeline { border-left: 2px solid ${pc}; padding-left: 10px; }
-        .item { margin-bottom: 5px; position: relative; }
-        .item::before { content: ''; position: absolute; left: -14px; top: 3px; width: 5px; height: 5px; border-radius: 50%; background: ${pc}; }
-        .item-title { font-weight: 700; font-size: 8.5pt; color: ${tc}; }
-        .item-subtitle { color: ${tc}; opacity: 0.6; font-size: 7.5pt; }
-        .item-desc { color: ${tc}; opacity: 0.7; font-size: 7.5pt; margin-top: 1px; }
-        .skills-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+        .name { font-size: ${densityConfig.headingSize}; font-weight: 700; }
+        .title { font-size: ${densityConfig.sectionSize}; opacity: 0.9; margin-bottom: 4px; }
+        .contact-line { font-size: ${densityConfig.metaSize}; opacity: 0.85; }
+        .section-title { font-size: ${densityConfig.sectionSize}; font-weight: 700; color: ${pc}; display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .section-title::after { content: ''; flex: 1; height: 2px; background: linear-gradient(to right, ${pc}, transparent); }
+        .timeline { border-left: 3px solid ${pc}; padding-left: 14px; }
+        .item { margin-bottom: ${densityConfig.itemMargin}; position: relative; }
+        .item::before { content: ''; position: absolute; left: -18px; top: 6px; width: 7px; height: 7px; border-radius: 50%; background: ${pc}; }
+        .skills-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
         .skill-item { text-align: center; }
-        .skill-circle { width: 30px; height: 30px; border-radius: 50%; border: 2px solid ${pc}; display: flex; align-items: center; justify-content: center; margin: 0 auto 2px; font-weight: 700; font-size: 8pt; color: ${pc}; }
-        .skill-name { font-size: 7pt; color: ${tc}; }
+        .skill-circle { width: 40px; height: 40px; border-radius: 50%; border: 2px solid ${pc}; display: flex; align-items: center; justify-content: center; margin: 0 auto 4px; font-weight: 700; font-size: ${densityConfig.metaSize}; color: ${pc}; }
+        .skill-name { font-size: ${densityConfig.smallSize}; color: ${tc}; }
       `;
 
     case 'minimal':
-      return baseStyles + getPhotoStyles(profile, 72) + `
-        .cv-container { width: 816px; padding: 32px 36px; }
-        .header { text-align: center; margin-bottom: 14px; }
-        .name { font-size: 20pt; font-weight: 300; letter-spacing: 3px; margin-bottom: 3px; text-transform: uppercase; color: ${tc}; }
-        .title { font-size: 9pt; color: ${tc}; opacity: 0.5; letter-spacing: 2px; margin-bottom: 6px; text-transform: uppercase; }
-        .contact-line { font-size: 8pt; color: ${tc}; opacity: 0.6; }
-        .section { margin-bottom: 10px; }
-        .section-title { font-size: 8pt; font-weight: 600; letter-spacing: 2px; color: ${tc}; margin-bottom: 6px; text-transform: uppercase; border-bottom: 1px solid ${tc}20; padding-bottom: 3px; }
-        .item { margin-bottom: 7px; }
-        .item-header { display: flex; justify-content: space-between; align-items: baseline; }
-        .item-title { font-weight: 500; font-size: 8.5pt; color: ${tc}; }
-        .item-date { color: ${tc}; opacity: 0.4; font-size: 7.5pt; }
-        .item-subtitle { color: ${tc}; opacity: 0.5; font-size: 7.5pt; margin-top: 1px; }
-        .item-desc { color: ${tc}; opacity: 0.7; font-size: 7.5pt; margin-top: 2px; }
-        .skills-list { display: flex; flex-wrap: wrap; gap: 4px; }
-        .skill-tag { padding: 2px 7px; background: ${tc}08; border-radius: 2px; font-size: 7.5pt; color: ${tc}; border: 1px solid ${tc}15; }
+      return baseStyles + getPhotoStyles(profile, 90) + `
+        .header { text-align: center; margin-bottom: 18px; }
+        .name { font-size: ${densityConfig.headingSize}; font-weight: 300; letter-spacing: 3px; margin-bottom: 4px; text-transform: uppercase; color: ${tc}; }
+        .title { font-size: ${densityConfig.sectionSize}; color: ${tc}; opacity: 0.5; letter-spacing: 2px; margin-bottom: 8px; text-transform: uppercase; }
+        .contact-line { font-size: ${densityConfig.metaSize}; color: ${tc}; opacity: 0.7; }
+        .section-title { font-size: ${densityConfig.sectionSize}; font-weight: 600; letter-spacing: 2px; color: ${tc}; margin-bottom: 8px; text-transform: uppercase; border-bottom: 1px solid ${tc}20; padding-bottom: 4px; }
+        .item { margin-bottom: ${densityConfig.itemMargin}; }
+        .item-header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+        .skills-list { display: flex; flex-wrap: wrap; gap: 6px; }
+        .skill-tag { padding: 4px 10px; background: ${tc}08; border-radius: 4px; font-size: ${densityConfig.metaSize}; color: ${tc}; border: 1px solid ${tc}15; }
       `;
 
     case 'executive':
-      return baseStyles + getPhotoStyles(profile, 68, true) + `
-        .cv-container { width: 816px; }
-        .header-band { background: ${pc}; color: #fff; padding: 14px 20px; display: flex; align-items: center; gap: 14px; }
-        .header-text { flex: 1; }
-        .name { font-size: 16pt; font-weight: 700; letter-spacing: 0.5px; }
-        .title { font-size: 9pt; opacity: 0.9; margin-top: 1px; }
-        .contact-row { display: flex; gap: 12px; font-size: 7pt; opacity: 0.85; margin-top: 3px; flex-wrap: wrap; }
-        .body-cols { display: flex; padding: 12px 16px; gap: 14px; }
-        .col-left { flex: 2; }
-        .col-right { flex: 1; border-left: 1px solid ${tc}15; padding-left: 14px; }
-        .section { margin-bottom: 8px; }
-        .section-title { font-size: 8pt; font-weight: 700; color: ${pc}; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; padding-bottom: 2px; border-bottom: 1px solid ${pc}30; }
-        .item { margin-bottom: 5px; }
-        .item-title { font-weight: 700; font-size: 8.5pt; color: ${tc}; }
-        .item-subtitle { color: ${tc}; opacity: 0.6; font-size: 7.5pt; }
-        .item-date { color: ${tc}; opacity: 0.5; font-size: 7pt; }
-        .item-desc { color: ${tc}; opacity: 0.7; font-size: 7.5pt; margin-top: 1px; }
-        .skill-item { margin-bottom: 3px; }
-        .skill-name { font-size: 7.5pt; margin-bottom: 1px; display: flex; justify-content: space-between; color: ${tc}; }
-        .skill-bar { height: 3px; background: ${tc}10; border-radius: 1.5px; }
-        .skill-fill { height: 100%; background: ${pc}; border-radius: 1.5px; }
-        .cert-item { font-size: 7.5pt; margin-bottom: 3px; color: ${tc}; }
-        .cert-item strong { display: block; }
+      return baseStyles + getPhotoStyles(profile, 95) + `
+        .header { text-align: center; border-bottom: 3px double ${pc}; padding-bottom: 14px; margin-bottom: 16px; }
+        .name { font-size: ${densityConfig.headingSize}; font-weight: 700; color: ${pc}; margin-bottom: 4px; letter-spacing: 1px; }
+        .title { font-size: ${densityConfig.sectionSize}; color: ${tc}; opacity: 0.6; margin-bottom: 8px; letter-spacing: 1px; }
+        .contact-info { display: flex; justify-content: center; gap: 16px; color: ${tc}; opacity: 0.7; flex-wrap: wrap; font-size: ${densityConfig.metaSize}; }
+        .section-title { font-size: ${densityConfig.sectionSize}; font-weight: 700; color: ${pc}; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 2px; }
+        .section-title::before { content: '— '; color: ${pc}; }
+        .item-header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+        .skills-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 20px; }
+        .skill-item { display: flex; justify-content: space-between; font-size: ${densityConfig.bodySize}; }
       `;
 
     case 'corporate':
-      return baseStyles + getPhotoStyles(profile, 70) + `
-        .cv-container { width: 816px; border-left: 4px solid ${pc}; padding: 16px 20px; }
-        .header { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid ${tc}15; }
-        .header-main { flex: 1; }
-        .name { font-size: 16pt; font-weight: 700; color: ${pc}; margin-bottom: 1px; }
-        .title { font-size: 9pt; color: ${tc}; opacity: 0.6; margin-bottom: 3px; }
-        .contact-info { display: flex; gap: 10px; font-size: 7.5pt; color: ${tc}; opacity: 0.5; flex-wrap: wrap; }
-        .section { margin-bottom: 8px; }
-        .section-title { font-size: 8pt; font-weight: 700; color: ${pc}; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; padding-left: 8px; border-left: 3px solid ${pc}; }
-        .item { margin-bottom: 5px; padding-left: 8px; }
-        .item-header { display: flex; justify-content: space-between; align-items: baseline; }
-        .item-title { font-weight: 700; font-size: 8.5pt; color: ${tc}; }
-        .item-date { color: ${tc}; opacity: 0.5; font-size: 7pt; }
-        .item-subtitle { color: ${tc}; opacity: 0.6; font-size: 7.5pt; }
-        .item-desc { color: ${tc}; opacity: 0.7; font-size: 7.5pt; margin-top: 1px; }
-        .skills-grid { display: flex; flex-wrap: wrap; gap: 4px; }
-        .skill-tag { padding: 2px 6px; background: ${pc}12; border: 1px solid ${pc}30; border-radius: 2px; font-size: 7.5pt; color: ${pc}; }
-        .cert-item { font-size: 7.5pt; margin-bottom: 2px; color: ${tc}; }
+      return baseStyles + getPhotoStyles(profile, 80) + `
+        .cv-container { display: flex; padding: 0; }
+        .sidebar { width: 25%; background: ${pc}08; border-right: 3px solid ${pc}; padding: ${densityConfig.padding}; }
+        .main { width: 75%; padding: ${densityConfig.padding}; }
+        .name { font-size: ${densityConfig.headingSize}; font-weight: 700; color: ${pc}; margin-bottom: 4px; }
+        .title { font-size: ${densityConfig.sectionSize}; color: ${tc}; opacity: 0.6; margin-bottom: 12px; }
+        .sidebar-title { font-size: ${densityConfig.metaSize}; font-weight: 700; color: ${pc}; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
+        .contact-item { margin-bottom: 6px; font-size: ${densityConfig.metaSize}; color: ${tc}; }
+        .section-title { font-size: ${densityConfig.sectionSize}; font-weight: 700; color: ${pc}; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; padding-bottom: 4px; border-bottom: 2px solid ${pc}; }
+        .skills-list { display: flex; flex-direction: column; gap: 6px; }
+        .skill-item { font-size: ${densityConfig.metaSize}; padding: 4px 8px; background: ${pc}10; border-left: 3px solid ${pc}; border-radius: 2px; }
       `;
 
     case 'elegant':
-      return baseStyles + getPhotoStyles(profile, 76) + `
-        .cv-container { width: 816px; padding: 24px; border: 2px double ${pc}20; margin: 0; }
-        .inner { border: 1px solid ${pc}15; padding: 14px 18px; }
-        .header { text-align: center; margin-bottom: 10px; }
-        .name { font-size: 18pt; font-weight: 300; color: ${tc}; letter-spacing: 4px; text-transform: uppercase; }
-        .name-line { display: flex; align-items: center; gap: 8px; margin: 4px auto 6px; max-width: 60%; }
-        .name-line::before, .name-line::after { content: ''; flex: 1; height: 1px; background: linear-gradient(to right, transparent, ${pc}60, transparent); }
-        .name-line span { color: ${pc}; font-size: 6pt; }
-        .title { font-size: 9pt; color: ${tc}; opacity: 0.5; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 6px; }
-        .contact-line { font-size: 7.5pt; color: ${tc}; opacity: 0.5; }
-        .section { margin-bottom: 8px; }
-        .section-title { font-size: 7.5pt; font-weight: 600; letter-spacing: 2px; color: ${pc}; text-transform: uppercase; text-align: center; margin-bottom: 5px; }
-        .section-title::before, .section-title::after { content: ' \\00B7  '; color: ${pc}50; }
-        .section-divider { height: 1px; background: linear-gradient(to right, transparent, ${pc}30, transparent); margin: 0 auto 5px; max-width: 80%; }
-        .item { margin-bottom: 5px; }
-        .item-header { display: flex; justify-content: space-between; align-items: baseline; }
-        .item-title { font-weight: 600; font-size: 8.5pt; color: ${tc}; }
-        .item-date { color: ${tc}; opacity: 0.5; font-size: 7pt; font-style: italic; }
-        .item-subtitle { color: ${tc}; opacity: 0.5; font-size: 7.5pt; font-style: italic; }
-        .item-desc { color: ${tc}; opacity: 0.7; font-size: 7.5pt; margin-top: 1px; }
-        .skills-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; }
-        .skill-tag { padding: 2px 8px; border: 1px solid ${pc}40; border-radius: 10px; font-size: 7pt; color: ${pc}; background: ${pc}08; }
+      return baseStyles + getPhotoStyles(profile, 100) + `
+        .header { text-align: center; margin-bottom: 20px; position: relative; }
+        .header::after { content: ''; display: block; width: 60px; height: 2px; background: ${pc}; margin: 12px auto 0; }
+        .name { font-size: ${densityConfig.headingSize}; font-weight: 400; color: ${tc}; margin-bottom: 4px; letter-spacing: 2px; font-family: Georgia, serif; }
+        .title { font-size: ${densityConfig.sectionSize}; color: ${pc}; font-style: italic; margin-bottom: 8px; }
+        .contact-info { display: flex; justify-content: center; gap: 16px; color: ${tc}; opacity: 0.6; flex-wrap: wrap; font-size: ${densityConfig.metaSize}; }
+        .section-title { font-size: ${densityConfig.sectionSize}; font-weight: 400; color: ${tc}; margin-bottom: 10px; text-align: center; letter-spacing: 3px; text-transform: uppercase; font-family: Georgia, serif; }
+        .section-title::before, .section-title::after { content: '— '; color: ${pc}; }
+        .item { margin-bottom: ${densityConfig.itemMargin}; padding-left: 16px; border-left: 1px solid ${pc}40; }
+        .item-header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
       `;
 
     case 'tech':
-      return baseStyles + getPhotoStyles(profile, 66, true) + `
-        .cv-container { width: 816px; background: #fafbfc; }
-        .header { background: #1a1a2e; color: #e0e0e0; padding: 12px 18px; display: flex; align-items: center; gap: 12px; }
-        .header-info { flex: 1; }
-        .name { font-size: 14pt; font-weight: 700; color: #00d4ff; letter-spacing: 1px; }
-        .name::before { content: '> '; color: #00d4ff60; }
-        .title { font-size: 8.5pt; color: #a0a0b0; margin-top: 1px; }
-        .contact-line { font-size: 7pt; color: #808090; display: flex; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
-        .section { margin-bottom: 7px; padding: 0 14px; }
-        .section-title { font-size: 8pt; font-weight: 700; color: #1a1a2e; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 4px; padding-bottom: 2px; border-bottom: 2px solid #00d4ff; display: flex; align-items: center; gap: 6px; }
-        .section-title::before { content: '//'; color: #00d4ff80; font-family: 'Courier New', monospace; }
-        .item { margin-bottom: 4px; border-left: 2px solid #00d4ff30; padding-left: 8px; }
-        .item-header { display: flex; justify-content: space-between; align-items: baseline; }
-        .item-title { font-weight: 700; font-size: 8.5pt; color: #1a1a2e; }
-        .item-date { color: #999; font-size: 7pt; font-family: 'Courier New', monospace; }
-        .item-subtitle { color: #666; font-size: 7.5pt; }
-        .item-desc { color: #555; font-size: 7.5pt; margin-top: 1px; }
-        .skills-grid { display: flex; flex-wrap: wrap; gap: 3px; }
-        .skill-tag { padding: 2px 6px; background: #1a1a2e; color: #00d4ff; border-radius: 2px; font-size: 7pt; font-family: 'Courier New', monospace; }
-        .cert-item { font-size: 7.5pt; margin-bottom: 2px; font-family: 'Courier New', monospace; }
+      return baseStyles + getPhotoStyles(profile, 80) + `
+        .header { background: ${tc}; color: #fff; padding: 16px 20px; border-radius: 4px; margin-bottom: 14px; border-left: 4px solid ${pc}; }
+        .name { font-size: ${densityConfig.headingSize}; font-weight: 700; color: ${pc}; font-family: 'Courier New', monospace; }
+        .title { font-size: ${densityConfig.sectionSize}; color: #fff; opacity: 0.8; margin-bottom: 6px; font-family: 'Courier New', monospace; }
+        .contact-info { display: flex; gap: 12px; flex-wrap: wrap; font-size: ${densityConfig.metaSize}; color: ${pc}; font-family: 'Courier New', monospace; }
+        .section { background: ${tc}03; padding: 12px; border-radius: 4px; margin-bottom: ${densityConfig.sectionMargin}; border-left: 3px solid ${pc}; }
+        .section-title { font-size: ${densityConfig.sectionSize}; font-weight: 700; color: ${pc}; margin-bottom: 8px; font-family: 'Courier New', monospace; }
+        .item { margin-bottom: ${densityConfig.itemMargin}; padding: 6px 0; border-bottom: 1px dashed ${tc}20; }
+        .item:last-child { border-bottom: none; }
+        .skills-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+        .skill-tag { padding: 4px 10px; background: ${tc}; color: #fff; border-radius: 3px; font-size: ${densityConfig.smallSize}; font-family: 'Courier New', monospace; text-align: center; }
       `;
 
     case 'infographic':
-      return baseStyles + getPhotoStyles(profile, 72) + `
-        .cv-container { width: 816px; padding: 24px; }
-        .header { text-align: center; margin-bottom: 12px; padding: 14px; background: linear-gradient(135deg, ${pc}10, ${sc}10); border-radius: 8px; }
-        .name { font-size: 16pt; font-weight: 700; color: ${pc}; }
-        .title { font-size: 9pt; color: ${tc}; opacity: 0.6; }
-        .contact-row { display: flex; justify-content: center; gap: 16px; font-size: 7.5pt; color: ${tc}; opacity: 0.6; margin-top: 4px; flex-wrap: wrap; }
-        .cols { display: flex; gap: 14px; }
-        .col-left { flex: 1.2; }
-        .col-right { flex: 1; }
-        .section { margin-bottom: 8px; }
-        .section-title { font-size: 8.5pt; font-weight: 700; color: ${pc}; margin-bottom: 5px; padding: 3px 8px; background: ${pc}12; border-radius: 3px; display: inline-block; }
-        .item { margin-bottom: 5px; padding-left: 10px; border-left: 2px solid ${pc}40; }
-        .item-header { display: flex; justify-content: space-between; align-items: baseline; }
-        .item-title { font-weight: 700; font-size: 8.5pt; color: ${tc}; }
-        .item-date { color: ${tc}; opacity: 0.5; font-size: 7pt; }
-        .item-subtitle { color: ${tc}; opacity: 0.6; font-size: 7.5pt; }
-        .item-desc { color: ${tc}; opacity: 0.7; font-size: 7.5pt; margin-top: 1px; }
-        .skills-visual { display: flex; flex-wrap: wrap; gap: 6px; }
-        .skill-pill { padding: 3px 8px; border-radius: 12px; font-size: 7.5pt; color: #fff; font-weight: 600; }
-        .cert-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border: 1px solid ${ac}40; border-radius: 3px; font-size: 7pt; color: ${ac}; background: ${ac}08; margin: 2px; }
+      return baseStyles + getPhotoStyles(profile, 80) + `
+        .header { display: flex; gap: 16px; align-items: center; margin-bottom: 16px; padding: 16px; background: linear-gradient(135deg, ${pc}15, ${sc}15); border-radius: 8px; }
+        .header-info { flex: 1; }
+        .name { font-size: ${densityConfig.headingSize}; font-weight: 700; color: ${pc}; }
+        .title { font-size: ${densityConfig.sectionSize}; color: ${tc}; opacity: 0.7; margin-bottom: 6px; }
+        .contact-info { display: flex; gap: 12px; flex-wrap: wrap; font-size: ${densityConfig.metaSize}; }
+        .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: ${densityConfig.sectionMargin}; }
+        .stat-card { background: ${pc}10; padding: 10px; border-radius: 6px; text-align: center; border: 1px solid ${pc}30; }
+        .stat-number { font-size: ${densityConfig.headingSize}; font-weight: 700; color: ${pc}; }
+        .stat-label { font-size: ${densityConfig.smallSize}; color: ${tc}; opacity: 0.7; margin-top: 2px; }
+        .section-title { font-size: ${densityConfig.sectionSize}; font-weight: 700; color: ${pc}; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        .section-title::before { content: '▸'; color: ${pc}; }
+        .timeline { border-left: 3px solid ${pc}; padding-left: 14px; }
+        .item { margin-bottom: ${densityConfig.itemMargin}; position: relative; }
+        .item::before { content: ''; position: absolute; left: -18px; top: 8px; width: 8px; height: 8px; border-radius: 50%; background: ${pc}; border: 2px solid #fff; box-shadow: 0 0 0 2px ${pc}; }
       `;
 
     case 'bold':
-      return baseStyles + getPhotoStyles(profile, 70, true) + `
-        .cv-container { width: 816px; }
-        .header { background: ${pc}; color: #fff; padding: 18px 24px; display: flex; align-items: center; gap: 14px; }
-        .header-info { flex: 1; }
-        .name { font-size: 18pt; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
-        .title { font-size: 10pt; opacity: 0.9; font-weight: 300; }
-        .contact-row { display: flex; gap: 12px; font-size: 7.5pt; margin-top: 4px; flex-wrap: wrap; opacity: 0.85; }
-        .body-content { padding: 14px 20px; }
-        .cols { display: flex; gap: 16px; }
-        .col-main { flex: 2; }
-        .col-side { flex: 1; }
-        .section { margin-bottom: 8px; }
-        .section-title { font-size: 10pt; font-weight: 800; color: ${pc}; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px; }
-        .item { margin-bottom: 6px; }
-        .item-header { display: flex; justify-content: space-between; align-items: baseline; }
-        .item-title { font-weight: 700; font-size: 9pt; color: ${tc}; }
-        .item-date { color: ${tc}; opacity: 0.5; font-size: 7pt; }
-        .item-subtitle { color: ${tc}; opacity: 0.6; font-size: 8pt; }
-        .item-desc { color: ${tc}; opacity: 0.7; font-size: 7.5pt; margin-top: 1px; }
-        .skill-bar-full { margin-bottom: 4px; }
-        .skill-label { font-size: 7.5pt; font-weight: 600; color: ${tc}; margin-bottom: 1px; display: flex; justify-content: space-between; }
-        .skill-track { height: 4px; background: ${tc}10; border-radius: 2px; overflow: hidden; }
-        .skill-progress { height: 100%; background: linear-gradient(90deg, ${pc}, ${sc}); border-radius: 2px; }
-        .cert-item { font-size: 7.5pt; margin-bottom: 3px; padding-left: 8px; border-left: 2px solid ${ac}; color: ${tc}; }
+      return baseStyles + getPhotoStyles(profile, 90) + `
+        .header { margin-bottom: 16px; }
+        .name { font-size: ${densityConfig.headingSize}; font-weight: 900; color: ${tc}; line-height: 1.1; margin-bottom: 4px; }
+        .name span { color: ${pc}; }
+        .title { font-size: ${densityConfig.sectionSize}; font-weight: 600; color: ${pc}; margin-bottom: 8px; }
+        .contact-info { display: flex; gap: 12px; flex-wrap: wrap; font-size: ${densityConfig.metaSize}; color: ${tc}; }
+        .section-title { font-size: ${densityConfig.sectionSize}; font-weight: 900; color: #fff; background: ${pc}; padding: 6px 14px; border-radius: 4px; display: inline-block; margin-bottom: 10px; }
+        .item { margin-bottom: ${densityConfig.itemMargin}; padding: 10px; border-left: 4px solid ${pc}; background: ${pc}08; border-radius: 0 6px 6px 0; }
+        .item-header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+        .skills-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 16px; }
+        .skill-item { display: flex; align-items: center; gap: 8px; font-size: ${densityConfig.bodySize}; }
+        .skill-bar { flex: 1; height: 8px; background: ${tc}15; border-radius: 4px; overflow: hidden; }
+        .skill-fill { height: 100%; background: ${pc}; border-radius: 4px; }
       `;
 
     case 'compact':
-      return baseStyles + getPhotoStyles(profile, 62, true) + `
-        .cv-container { width: 816px; padding: 18px 22px; }
-        .header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1.5px solid ${pc}; }
+      return baseStyles + getPhotoStyles(profile, 70) + `
+        .header { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; border-bottom: 2px solid ${pc}; padding-bottom: 10px; }
         .header-info { flex: 1; }
-        .name { font-size: 14pt; font-weight: 700; color: ${pc}; }
-        .title { font-size: 8pt; color: ${tc}; opacity: 0.6; }
-        .contact-row { display: flex; gap: 8px; font-size: 7pt; color: ${tc}; opacity: 0.5; flex-wrap: wrap; }
-        .cols { display: flex; gap: 12px; }
-        .col-left { flex: 2; }
-        .col-right { flex: 1; border-left: 1px solid ${tc}10; padding-left: 12px; }
-        .section { margin-bottom: 6px; }
-        .section-title { font-size: 7.5pt; font-weight: 700; color: ${pc}; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
-        .item { margin-bottom: 3px; }
-        .item-header { display: flex; justify-content: space-between; align-items: baseline; }
-        .item-title { font-weight: 700; font-size: 8pt; color: ${tc}; }
-        .item-date { color: ${tc}; opacity: 0.4; font-size: 6.5pt; }
-        .item-subtitle { color: ${tc}; opacity: 0.5; font-size: 7pt; }
-        .item-desc { color: ${tc}; opacity: 0.6; font-size: 7pt; margin-top: 1px; }
-        .skills-grid { display: flex; flex-wrap: wrap; gap: 3px; }
-        .skill-tag { padding: 1px 5px; background: ${pc}10; border-radius: 2px; font-size: 6.5pt; color: ${pc}; }
-        .cert-item { font-size: 7pt; margin-bottom: 2px; color: ${tc}; }
+        .name { font-size: ${densityConfig.headingSize}; font-weight: 700; color: ${tc}; }
+        .title { font-size: ${densityConfig.sectionSize}; color: ${pc}; margin-bottom: 4px; }
+        .contact-info { display: flex; gap: 8px; flex-wrap: wrap; font-size: ${densityConfig.metaSize}; color: ${tc}; opacity: 0.7; }
+        .section-title { font-size: ${densityConfig.sectionSize}; font-weight: 700; color: ${pc}; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid ${pc}40; padding-bottom: 2px; }
+        .item { margin-bottom: ${densityConfig.itemMargin}; }
+        .item-header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+        .item-title { font-size: ${densityConfig.itemTitleSize}; font-weight: 700; color: ${tc}; }
+        .item-subtitle { font-size: ${densityConfig.metaSize}; color: ${pc}; }
+        .item-date { font-size: ${densityConfig.smallSize}; color: ${tc}; opacity: 0.6; }
+        .item-desc { font-size: ${densityConfig.metaSize}; color: ${tc}; opacity: 0.8; margin-top: 2px; line-height: 1.3; }
+        .skills-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px 12px; }
+        .skill-item { font-size: ${densityConfig.metaSize}; padding: 3px 8px; background: ${pc}10; border-radius: 3px; }
       `;
 
     case 'professional':
-      return baseStyles + getPhotoStyles(profile, 72) + `
-        .cv-container { width: 816px; padding: 24px 28px; }
-        .header { display: flex; gap: 14px; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px solid ${pc}; }
-        .header-text { flex: 1; }
-        .name { font-size: 16pt; font-weight: 700; color: ${tc}; }
-        .name-accent { color: ${pc}; }
-        .title { font-size: 9pt; color: ${tc}; opacity: 0.6; margin-top: 1px; }
-        .contact-row { display: flex; gap: 10px; font-size: 7.5pt; color: ${tc}; opacity: 0.5; margin-top: 4px; flex-wrap: wrap; }
-        .summary { font-size: 8pt; color: ${tc}; opacity: 0.7; margin-bottom: 8px; line-height: 1.4; }
-        .cols { display: flex; gap: 14px; }
-        .col-left { flex: 2; }
-        .col-right { flex: 1; }
-        .section { margin-bottom: 8px; }
-        .section-title { font-size: 8.5pt; font-weight: 700; color: ${pc}; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; padding-bottom: 2px; border-bottom: 1px solid ${pc}30; }
-        .item { margin-bottom: 5px; }
-        .item-header { display: flex; justify-content: space-between; align-items: baseline; }
-        .item-title { font-weight: 700; font-size: 8.5pt; color: ${tc}; }
-        .item-date { color: ${tc}; opacity: 0.5; font-size: 7pt; }
-        .item-subtitle { color: ${tc}; opacity: 0.6; font-size: 7.5pt; }
-        .item-desc { color: ${tc}; opacity: 0.7; font-size: 7.5pt; margin-top: 1px; }
-        .skill-item { margin-bottom: 4px; }
-        .skill-name { font-size: 7.5pt; margin-bottom: 1px; display: flex; justify-content: space-between; color: ${tc}; }
-        .skill-bar { height: 3px; background: ${tc}10; border-radius: 1.5px; }
-        .skill-fill { height: 100%; background: ${pc}; border-radius: 1.5px; }
-        .cert-item { font-size: 7.5pt; margin-bottom: 3px; color: ${tc}; }
+      return baseStyles + getPhotoStyles(profile, 95) + `
+        .header { text-align: center; border-top: 4px solid ${pc}; border-bottom: 1px solid ${pc}40; padding: 16px 0; margin-bottom: 16px; }
+        .name { font-size: ${densityConfig.headingSize}; font-weight: 700; color: ${tc}; margin-bottom: 4px; }
+        .title { font-size: ${densityConfig.sectionSize}; color: ${pc}; font-weight: 600; margin-bottom: 8px; }
+        .contact-info { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; font-size: ${densityConfig.metaSize}; color: ${tc}; }
+        .section { margin-bottom: ${densityConfig.sectionMargin}; }
+        .section-title { font-size: ${densityConfig.sectionSize}; font-weight: 700; color: ${pc}; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 2px solid ${pc}; display: flex; align-items: center; gap: 8px; }
+        .section-title::before { content: ''; width: 8px; height: 8px; background: ${pc}; border-radius: 50%; }
+        .item { margin-bottom: ${densityConfig.itemMargin}; padding: 8px 12px; background: ${pc}05; border-radius: 6px; border-left: 3px solid ${pc}; }
+        .item-header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+        .skills-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 20px; }
+        .skill-item { display: flex; align-items: center; gap: 8px; font-size: ${densityConfig.bodySize}; }
+        .skill-bar { flex: 1; height: 6px; background: ${pc}20; border-radius: 3px; overflow: hidden; }
+        .skill-fill { height: 100%; background: linear-gradient(to right, ${pc}, ${sc}); border-radius: 3px; }
       `;
 
     default:
       return baseStyles;
   }
 }
+
 
 // ===================== CONTENT =====================
 
